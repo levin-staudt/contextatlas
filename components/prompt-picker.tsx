@@ -27,20 +27,20 @@ export function PromptPicker() {
 
   return (
     <div className="mt-10 max-w-3xl">
-      <div role="group" aria-label="What do you need?" className="inline-flex flex-wrap rounded-full border-2 border-ink p-1 font-sans text-lg">
+      <div role="group" aria-label="What do you need?" className="grid w-full grid-cols-2 rounded-2xl border-2 border-ink p-1 font-sans text-base sm:inline-grid sm:w-auto sm:rounded-full sm:text-lg">
         {modes.map((m) => (
           <button
             key={m.id}
             type="button"
             aria-pressed={mode === m.id}
             onClick={() => setMode(m.id)}
-            className={`rounded-full px-4 py-1.5 transition-colors ${mode === m.id ? "bg-ink text-paper" : "hover:bg-paper-deep"}`}
+            className={`rounded-xl px-3 py-2 leading-tight transition-colors sm:rounded-full sm:px-4 sm:py-1.5 ${mode === m.id ? "bg-ink text-paper" : "hover:bg-paper-deep"}`}
           >
             {m.label}
           </button>
         ))}
       </div>
-      <p className="mt-4 text-lg text-ink-soft">{current.hint}</p>
+      <p className="mt-4 text-ink-soft sm:text-lg">{current.hint}</p>
 
       {mode === "new" ? (
         <div className="mt-6">
@@ -58,7 +58,7 @@ export function PromptPicker() {
         </div>
       ) : null}
 
-      <blockquote className="mt-6 whitespace-pre-wrap rounded-lg border-l-4 border-sea bg-paper-deep px-6 py-5 text-xl leading-relaxed">
+      <blockquote className="mt-6 whitespace-pre-wrap rounded-lg border-l-4 border-sea bg-paper-deep px-4 py-4 text-lg leading-relaxed [overflow-wrap:anywhere] sm:px-6 sm:py-5 sm:text-xl">
         {text}
       </blockquote>
       <div className="mt-6">

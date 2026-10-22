@@ -76,10 +76,10 @@ export function SourceBrowser({ regions }: { regions: Region[] }) {
           className="mt-2 w-full rounded-lg border border-contour bg-paper px-4 py-2.5 font-sans text-lg text-ink placeholder:text-ink-soft/60 focus:border-sea focus:outline-none"
         />
 
-        <fieldset className="mt-8 rounded-lg border-2 border-ink px-4 pb-4 pt-1">
+        <fieldset className="mt-6 rounded-lg border-2 border-ink px-3 pb-3 pt-1 lg:mt-8 lg:px-4 lg:pb-4">
           <legend className="px-2 text-xl font-bold italic">Legend</legend>
-          <p className="font-sans text-sm text-ink-soft">Switch a symbol off to hide that kind of source.</p>
-          <ul className="mt-3 space-y-1">
+          <p className="font-sans text-sm text-ink-soft">Tap a symbol to hide that kind of source.</p>
+          <ul className="mt-2 grid grid-cols-2 gap-x-1 lg:mt-3 lg:block lg:space-y-1">
             {kindOrder.map((kind) => {
               const on = !hidden.has(kind);
               return (
@@ -90,12 +90,12 @@ export function SourceBrowser({ regions }: { regions: Region[] }) {
                     onClick={() => toggle(kind)}
                     className={`group flex w-full items-start gap-3 rounded-md px-2 py-1.5 text-left transition-opacity hover:bg-paper-deep ${on ? "" : "opacity-40"}`}
                   >
-                    <KindSymbol kind={kind} className="mt-1 size-4 shrink-0 text-sea" />
+                    <KindSymbol kind={kind} className="mt-0.5 size-4 shrink-0 text-sea lg:mt-1" />
                     <span>
                       <span className={`block font-semibold leading-tight ${on ? "" : "line-through"}`}>
                         {kinds[kind].label}
                       </span>
-                      <span className="block font-sans text-sm leading-snug text-ink-soft">
+                      <span className="hidden font-sans text-sm leading-snug text-ink-soft lg:block">
                         {kinds[kind].description}
                       </span>
                     </span>
@@ -106,11 +106,11 @@ export function SourceBrowser({ regions }: { regions: Region[] }) {
           </ul>
         </fieldset>
 
-        <nav aria-label="Regions" className="mt-8 hidden lg:block">
-          <ul className="space-y-1.5 font-sans">
+        <nav aria-label="Regions" className="mt-6 lg:mt-8">
+          <ul className="flex flex-wrap gap-2 font-sans lg:block lg:space-y-1.5">
             {visible.map((region) => (
               <li key={region.id}>
-                <a href={`#${region.id}`} className="text-ink-soft hover:text-ink hover:underline">
+                <a href={`#${region.id}`} className="block rounded-full border border-contour px-3 py-1 text-ink-soft hover:text-ink lg:rounded-none lg:border-0 lg:p-0 lg:hover:underline">
                   {region.name}
                 </a>
               </li>
@@ -142,7 +142,7 @@ export function SourceBrowser({ regions }: { regions: Region[] }) {
 
         {visible.map((region) => (
           <section key={region.id} id={region.id} className="scroll-mt-6 pt-10 first-of-type:pt-6">
-            <h2 className="text-3xl font-bold sm:text-4xl">{region.name}</h2>
+            <h2 className="text-[2rem] font-bold leading-tight sm:text-4xl">{region.name}</h2>
             <p className="mt-1 text-lg italic text-ink-soft">{region.description}</p>
             <div className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-x-10 gap-y-8 md:grid-cols-2">
               {region.topics.map((topic) => (

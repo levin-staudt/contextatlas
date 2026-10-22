@@ -28,18 +28,18 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body>
-        <header className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-5 sm:px-8">
-          <Link href="/" className="flex items-center gap-3 no-underline">
-            <AtlasMark className="size-10 text-ink" />
-            <span className="text-2xl font-bold tracking-tight">Context Atlas</span>
+        <header className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 sm:px-8 sm:py-5">
+          <Link href="/" className="flex min-w-0 items-center gap-2 no-underline sm:gap-3">
+            <AtlasMark className="size-9 shrink-0 text-ink sm:size-10" />
+            <span className="truncate text-xl font-bold tracking-tight sm:text-2xl">Context Atlas</span>
           </Link>
-          <nav className="flex items-center gap-2 font-sans text-lg sm:gap-4">
+          <nav className="flex shrink-0 items-center gap-1 font-sans sm:gap-4 sm:text-lg">
             <Link href="/#sources" className="hidden px-1 hover:underline sm:inline">
               Sources
             </Link>
             <Link
               href="/agent"
-              className="rounded-full border-2 border-ink px-4 py-1 font-medium hover:bg-ink hover:text-paper"
+              className="whitespace-nowrap rounded-full border-2 border-ink px-3 py-1 font-medium hover:bg-ink hover:text-paper sm:px-4"
             >
               Agent prompt
             </Link>
@@ -47,7 +47,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           </nav>
         </header>
         {children}
-        <footer className="mx-auto mt-24 max-w-7xl border-t-2 border-ink px-5 py-8 font-sans text-ink-soft sm:px-8">
+        <footer className="mx-auto mt-24 max-w-7xl border-t-2 border-ink px-4 py-8 font-sans text-ink-soft sm:px-8">
           <p>
             Context Atlas collects links only; every source belongs to its vendor. Missing something?{" "}
             <a href={repoUrl} className="text-ink underline">

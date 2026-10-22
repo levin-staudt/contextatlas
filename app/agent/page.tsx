@@ -10,11 +10,11 @@ export const metadata: Metadata = {
 
 export default function AgentPage() {
   return (
-    <main className="mx-auto max-w-7xl px-5 pt-10 sm:px-8 sm:pt-16">
-      <h1 className="max-w-4xl text-5xl font-extrabold leading-none tracking-tight sm:text-7xl">
+    <main className="mx-auto max-w-7xl px-4 pt-8 sm:px-8 sm:pt-16">
+      <h1 className="max-w-4xl text-[2.75rem] font-extrabold leading-none tracking-tight sm:text-7xl">
         Hand your agent the map
       </h1>
-      <p className="mt-6 max-w-[60ch] text-xl leading-relaxed text-ink-soft">
+      <p className="mt-6 max-w-[60ch] text-lg leading-relaxed text-ink-soft sm:text-xl">
         Paste one sentence into Claude Code, Codex, Cursor or any other coding agent. It points the
         agent to the atlas as an{" "}
         <a href="/llms.txt" className="text-ink underline underline-offset-4">
@@ -26,7 +26,7 @@ export default function AgentPage() {
       <PromptPicker />
 
       <p className="mt-12 max-w-[60ch] font-sans text-ink-soft">
-        Your agent needs web access to read <span className="text-ink">{llmsUrl}</span>. It asks
+        Your agent needs web access to read <span className="text-ink [overflow-wrap:anywhere]">{llmsUrl}</span>. It asks
         before installing any MCP server, skill or CLI.
       </p>
     </main>

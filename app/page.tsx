@@ -6,7 +6,7 @@ import { SourceBrowser } from "@/components/source-browser";
 export default function Home() {
   return (
     <main>
-      <section className="relative mx-auto max-w-7xl overflow-hidden px-5 pb-20 pt-10 sm:px-8 sm:pt-16">
+      <section className="relative mx-auto max-w-7xl overflow-hidden px-4 pb-16 pt-8 sm:px-8 sm:pt-16">
         <Globe className="pointer-events-none absolute top-2 hidden w-[34rem] sm:block text-contour sm:-right-24 lg:right-0 lg:w-[38rem]" />
         <div className="relative max-w-3xl">
           <h1 className="text-[clamp(3.5rem,11vw,8.5rem)] font-extrabold leading-[0.9] tracking-tight">
@@ -37,7 +37,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="sources" className="mx-auto max-w-7xl scroll-mt-4 px-5 sm:px-8">
+      <section id="sources" className="mx-auto max-w-7xl scroll-mt-4 px-4 sm:px-8">
         <SourceBrowser regions={regions} />
       </section>
     </main>
