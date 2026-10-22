@@ -14,14 +14,14 @@ export default function Home() {
             <br />
             Atlas
           </h1>
-          <p className="mt-8 max-w-[34ch] text-2xl leading-snug sm:text-3xl">
-            A map of the places where coding agents learn your stack.
+          <p className="mt-8 max-w-[30ch] text-2xl leading-snug sm:text-3xl">
+            Chart a tech stack, or find the right sources for the one you have.
           </p>
           <p className="mt-5 max-w-[60ch] text-lg leading-relaxed text-ink-soft">
-            Vendors now publish llms.txt indexes, MCP servers, agent skills and rule files alongside
-            their docs. This atlas gathers {sourceCount} of them for {allTopics.length} tools, from
-            Vercel and Cloudflare to Convex and Turborepo, so you can see what exists and hand your
-            agent the whole map at once.
+            Vendors now publish llms.txt indexes, MCP servers, agent skills and CLIs for coding
+            agents. This atlas gathers {sourceCount} of them for {allTopics.length} cloud providers,
+            frameworks, standards and CLIs. Browse them yourself, or give your agent one short
+            prompt and let it pick a stack or read up on yours.
           </p>
           <div className="mt-9 flex flex-wrap items-center gap-4 font-sans text-lg">
             <Link

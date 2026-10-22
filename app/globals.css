@@ -1,22 +1,48 @@
 @import "tailwindcss";
 
-@theme {
-  --color-paper: #e6ede9;
-  --color-paper-deep: #d6e1dc;
-  --color-ink: #15263b;
-  --color-ink-soft: #3d5163;
-  --color-sea: #2b5d6c;
-  --color-contour: #a7bbb4;
-  --color-gilt: #9a6b14;
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-deep: var(--paper-deep);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-sea: var(--sea);
+  --color-contour: var(--contour);
+  --color-brass: var(--brass);
   --font-serif: var(--font-alegreya), Georgia, serif;
   --font-sans: var(--font-alegreya-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
+/* Light: a sea chart. Dark: the same chart at night. */
+:root {
+  --paper: #edf3fa;
+  --paper-deep: #dae6f3;
+  --ink: #0d2346;
+  --ink-soft: #46597a;
+  --sea: #1c5ea8;
+  --contour: #a6bdd9;
+  --brass: #a8761a;
+  --glow: rgb(28 94 168 / 0.12);
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --paper: #081627;
+  --paper-deep: #10243d;
+  --ink: #e2ebf6;
+  --ink-soft: #9db1cb;
+  --sea: #7cb2ef;
+  --contour: #2a4769;
+  --brass: #e2b65a;
+  --glow: rgb(124 178 239 / 0.1);
+  color-scheme: dark;
+}
+
 @layer base {
-  :root {
-    color-scheme: light;
-    background: var(--color-paper);
-    color: var(--color-ink);
+  html {
+    background: var(--paper);
+    color: var(--ink);
     font-family: var(--font-serif);
     -webkit-font-smoothing: antialiased;
   }
@@ -24,13 +50,11 @@
   body {
     margin: 0;
     min-height: 100vh;
-    background-image:
-      radial-gradient(circle at 85% -10%, rgb(43 93 108 / 0.1), transparent 45%),
-      radial-gradient(circle at 0% 100%, rgb(154 107 20 / 0.06), transparent 40%);
+    background-image: radial-gradient(circle at 85% -10%, var(--glow), transparent 50%);
   }
 
   ::selection {
-    background: rgb(43 93 108 / 0.25);
+    background: color-mix(in srgb, var(--sea) 30%, transparent);
   }
 
   a {
@@ -38,7 +62,7 @@
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-gilt);
+    outline: 2px solid var(--brass);
     outline-offset: 3px;
     border-radius: 3px;
   }

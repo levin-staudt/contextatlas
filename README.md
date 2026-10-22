@@ -1,16 +1,18 @@
 # Context Atlas
 
-A map of the places where coding agents learn your stack: llms.txt indexes, docs, MCP servers, agent skills and rule files for Vercel, Cloudflare, Supabase, Neon, Railway, Next.js, vinext, Svelte, shadcn/ui, Convex, MCP, Agent Skills, monorepo tooling and more.
+Live: https://contextatlas.levinstaudt.workers.dev
+
+Chart a tech stack, or find the right sources for the one you have. Context Atlas collects the llms.txt indexes, docs, MCP servers, agent skills, rule files and CLIs that vendors publish for coding agents, grouped into cloud providers, frameworks, standards and CLIs.
 
 The site only links to the sources; every source belongs to its vendor.
 
 - `/` lists every source, filterable by search and by kind (the map legend).
-- `/agent` has a copy button for a prompt that tells a coding agent to detect your stack and follow the matching sources.
-- `/llms.txt` and `/atlas.json` expose the same catalog for machines.
+- `/agent` has a copy button for a one-sentence prompt, either for an existing project (detect the stack, then follow the matching sources) or for a new one (propose a stack).
+- `/llms.txt` holds the agent instructions and the full catalog; the prompt only links to it. `/atlas.json` has the same data as JSON.
 
 ## Add a source
 
-All content lives in [`lib/atlas.ts`](lib/atlas.ts). Add a `Source` to an existing topic, or a new `Topic` with `signals` (files or dependencies an agent can use to detect it). The agent prompt, `llms.txt` and `atlas.json` are generated from that file.
+All content lives in [`lib/atlas.ts`](lib/atlas.ts). Add a `Source` to an existing topic, or a new `Topic` with a `role`, `bestFor` (when to pick it) and `signals` (files or dependencies an agent can use to detect it). `llms.txt` and `atlas.json` are generated from that file.
 
 ## Develop
 

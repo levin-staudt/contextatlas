@@ -25,7 +25,7 @@ export function SourceBrowser({ regions }: { regions: Region[] }) {
           .map((topic) => {
             const topicMatches =
               !q ||
-              [topic.name, topic.summary, region.name, ...topic.signals].some((text) =>
+              [topic.name, topic.role, topic.summary, topic.bestFor, region.name, ...topic.signals].some((text) =>
                 text.toLowerCase().includes(q),
               );
             const sources = topic.sources.filter(
@@ -72,7 +72,7 @@ export function SourceBrowser({ regions }: { regions: Region[] }) {
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Supabase, MCP, turbo.json…"
+          placeholder="Database, Supabase, turbo.json…"
           className="mt-2 w-full rounded-lg border border-contour bg-paper px-4 py-2.5 font-sans text-lg text-ink placeholder:text-ink-soft/60 focus:border-sea focus:outline-none"
         />
 
@@ -147,8 +147,14 @@ export function SourceBrowser({ regions }: { regions: Region[] }) {
             <div className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-x-10 gap-y-8 md:grid-cols-2">
               {region.topics.map((topic) => (
                 <article key={topic.id} id={topic.id} className="scroll-mt-6 border-t-2 border-ink pt-3">
-                  <h3 className="text-2xl font-bold">{topic.name}</h3>
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+                    <h3 className="text-2xl font-bold">{topic.name}</h3>
+                    <span className="font-sans text-sm text-sea">{topic.role}</span>
+                  </div>
                   <p className="mt-0.5 leading-relaxed text-ink-soft">{topic.summary}</p>
+                  <p className="mt-1 leading-relaxed">
+                    <span className="font-semibold text-sea">Best for:</span> {topic.bestFor}
+                  </p>
                   <ul className="mt-3 space-y-2">
                     {topic.sources.map((source) => (
                       <li key={source.url}>
