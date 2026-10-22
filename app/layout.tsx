@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Alegreya, Alegreya_Sans } from "next/font/google";
 import { AtlasMark } from "@/components/logo";
 import { ThemeToggle, themeScript } from "@/components/theme-toggle";
-import { repoUrl } from "@/lib/atlas";
+import { repoUrl, siteUrl } from "@/lib/atlas";
 import "./globals.css";
 
 const alegreya = Alegreya({ subsets: ["latin"], variable: "--font-alegreya", display: "swap" });
@@ -19,6 +19,10 @@ export const metadata: Metadata = {
   description:
     "Find a tech stack, or the right agent sources for the one you have: llms.txt files, docs, MCP servers, agent skills and CLIs.",
   icons: { icon: "/favicon.svg" },
+  metadataBase: new URL(siteUrl),
+  alternates: {
+    types: { "text/plain": "/llms.txt", "application/json": "/atlas.json" },
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
