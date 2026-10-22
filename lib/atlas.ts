@@ -1,7 +1,9 @@
 export const repoUrl = "https://github.com/levin-staudt/contextatlas";
 export const siteUrl = "https://contextatlas.levinstaudt.workers.dev";
+/** Bump when the catalog changes. Shown to agents in llms.txt and atlas.json. */
+export const updatedAt = "2026-10-22";
 
-export type SourceKind = "llms" | "docs" | "mcp" | "skill" | "rules" | "guide";
+export type SourceKind = "llms" | "full" | "docs" | "mcp" | "skill" | "rules" | "guide";
 
 export type Source = {
   kind: SourceKind;
@@ -31,6 +33,7 @@ export type Region = {
 
 export const kinds: Record<SourceKind, { label: string; description: string }> = {
   llms: { label: "llms.txt", description: "Machine-readable index of the docs" },
+  full: { label: "Full text", description: "All docs in one large file, often several megabytes" },
   docs: { label: "Docs", description: "Full documentation or reference" },
   mcp: { label: "MCP server", description: "Tools an agent can call directly" },
   skill: { label: "Agent skill", description: "Installable instructions for agents" },
@@ -53,7 +56,7 @@ export const regions: Region[] = [
         signals: ["vercel.json", "vercel.ts", ".vercel/", "@vercel/* dependencies"],
         sources: [
           { kind: "llms", title: "Vercel llms.txt", url: "https://vercel.com/llms.txt" },
-          { kind: "llms", title: "Vercel docs, full text", url: "https://vercel.com/docs/llms-full.txt" },
+          { kind: "full", title: "Vercel docs, full text", url: "https://vercel.com/docs/llms-full.txt" },
           { kind: "guide", title: "Agent resources", url: "https://vercel.com/docs/agent-resources" },
           { kind: "mcp", title: "Vercel MCP server", url: "https://vercel.com/docs/mcp/vercel-mcp" },
           { kind: "skill", title: "vercel-labs/agent-skills", url: "https://github.com/vercel-labs/agent-skills" },
@@ -69,7 +72,7 @@ export const regions: Region[] = [
         signals: ["wrangler.toml", "wrangler.jsonc", "cloudflare.config.ts", "@cloudflare/* dependencies"],
         sources: [
           { kind: "llms", title: "Cloudflare docs llms.txt", url: "https://developers.cloudflare.com/llms.txt" },
-          { kind: "llms", title: "Cloudflare docs, full text", url: "https://developers.cloudflare.com/llms-full.txt" },
+          { kind: "full", title: "Cloudflare docs, full text", url: "https://developers.cloudflare.com/llms-full.txt" },
           { kind: "rules", title: "Prompting for Workers", url: "https://developers.cloudflare.com/workers/get-started/prompting/" },
           {
             kind: "mcp",
@@ -244,7 +247,7 @@ export const regions: Region[] = [
         signals: ["next.config.(js|ts|mjs)", "next dependency", "app/ or pages/ directory"],
         sources: [
           { kind: "llms", title: "Next.js docs llms.txt", url: "https://nextjs.org/docs/llms.txt" },
-          { kind: "llms", title: "Next.js docs, full text", url: "https://nextjs.org/docs/llms-full.txt" },
+          { kind: "full", title: "Next.js docs, full text", url: "https://nextjs.org/docs/llms-full.txt" },
           { kind: "guide", title: "AI coding agents", url: "https://nextjs.org/docs/app/guides/ai-agents" },
           { kind: "mcp", title: "Next.js MCP endpoint", url: "https://nextjs.org/docs/app/guides/mcp" },
           { kind: "mcp", title: "vercel/next-devtools-mcp", url: "https://github.com/vercel/next-devtools-mcp" },
@@ -272,7 +275,7 @@ export const regions: Region[] = [
         signals: ["svelte.config.js", "*.svelte files", "@sveltejs/kit"],
         sources: [
           { kind: "llms", title: "Svelte llms.txt", url: "https://svelte.dev/llms.txt" },
-          { kind: "llms", title: "Svelte docs, full text", url: "https://svelte.dev/llms-full.txt" },
+          { kind: "full", title: "Svelte docs, full text", url: "https://svelte.dev/llms-full.txt" },
           { kind: "docs", title: "Docs for LLMs", url: "https://svelte.dev/docs/llms" },
           { kind: "mcp", title: "Svelte MCP server", url: "https://svelte.dev/docs/mcp/overview" },
           { kind: "mcp", title: "sveltejs/mcp", url: "https://github.com/sveltejs/mcp" },
@@ -373,7 +376,7 @@ export const regions: Region[] = [
         bestFor: "Chat, streaming and tool calling with any model provider.",
         signals: ["ai dependency", "@ai-sdk/* dependencies"],
         sources: [
-          { kind: "llms", title: "AI SDK llms.txt", url: "https://ai-sdk.dev/llms.txt" },
+          { kind: "full", title: "AI SDK docs, full text", url: "https://ai-sdk.dev/llms.txt" },
           { kind: "docs", title: "AI SDK introduction", url: "https://ai-sdk.dev/docs/introduction" },
         ],
       },
@@ -494,7 +497,7 @@ export const regions: Region[] = [
         signals: [".mcp.json", "mcp.json", "@modelcontextprotocol/sdk"],
         sources: [
           { kind: "llms", title: "MCP llms.txt", url: "https://modelcontextprotocol.io/llms.txt" },
-          { kind: "llms", title: "MCP docs, full text", url: "https://modelcontextprotocol.io/llms-full.txt" },
+          { kind: "full", title: "MCP docs, full text", url: "https://modelcontextprotocol.io/llms-full.txt" },
           { kind: "docs", title: "MCP specification", url: "https://modelcontextprotocol.io/specification/latest" },
           { kind: "mcp", title: "MCP registry", url: "https://registry.modelcontextprotocol.io" },
           { kind: "mcp", title: "Reference servers", url: "https://github.com/modelcontextprotocol/servers" },
@@ -524,10 +527,10 @@ export const regions: Region[] = [
         role: "Docs index",
         summary: "A Markdown index of a site's docs, written for language models.",
         bestFor: "Making your own docs readable for agents.",
-        signals: ["public/llms.txt"],
+        signals: ["public/llms.txt", "a route that serves /llms.txt, e.g. app/llms.txt/route.ts"],
         sources: [
           { kind: "docs", title: "llmstxt.org", url: "https://llmstxt.org" },
-          { kind: "llms", title: "llms.txt directory", url: "https://directory.llmstxt.cloud" },
+          { kind: "guide", title: "llms.txt directory", url: "https://directory.llmstxt.cloud" },
         ],
       },
       {
@@ -782,3 +785,7 @@ export const regions: Region[] = [
 
 export const allTopics = regions.flatMap((region) => region.topics);
 export const sourceCount = allTopics.reduce((sum, topic) => sum + topic.sources.length, 0);
+
+export function findTopic(id: string) {
+  return allTopics.find((topic) => topic.id === id);
+}
