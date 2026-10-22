@@ -10,6 +10,7 @@ export function KindSymbol({ kind, className = "size-3.5" }: { kind: SourceKind;
           <circle cx="8" cy="8" r="3" fill="currentColor" />
         </>
       ) : null}
+      {kind === "full" ? <circle cx="8" cy="8" r="6.2" fill="currentColor" /> : null}
       {kind === "docs" ? <rect x="3" y="3" width="10" height="10" fill="currentColor" /> : null}
       {kind === "mcp" ? <path d="M8 2.2 14.2 13.4H1.8Z" fill="currentColor" /> : null}
       {kind === "skill" ? <path d="M8 1.5 14.5 8 8 14.5 1.5 8Z" fill="currentColor" /> : null}
