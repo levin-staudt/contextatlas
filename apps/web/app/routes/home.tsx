@@ -2,7 +2,8 @@ import type { SourceKind } from "@contextatlas/core";
 import { displayUrl, formatSignal } from "@contextatlas/core/format";
 import { type FormEvent, type MouseEvent, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
-import { Globe, KindSymbol } from "../components/icons";
+import { AnimatedGlobe } from "../components/globe";
+import { KindSymbol } from "../components/icons";
 import { pageMeta } from "../meta";
 import { getSite } from "../site";
 import type { Route } from "./+types/home";
@@ -65,7 +66,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
   return (
     <main>
       <section className="relative mx-auto max-w-7xl overflow-hidden px-4 pb-16 pt-8 sm:px-8 sm:pt-16">
-        <Globe className="pointer-events-none absolute top-2 hidden w-[34rem] text-contour sm:-right-24 sm:block lg:right-0 lg:w-[38rem]" />
+        <AnimatedGlobe className="pointer-events-none absolute top-2 hidden w-[34rem] sm:-right-24 sm:block lg:right-0 lg:w-[38rem]" />
         <div className="relative max-w-3xl">
           <h1 className="text-[clamp(3.5rem,11vw,8.5rem)] font-extrabold leading-[0.9] tracking-tight">
             Context
