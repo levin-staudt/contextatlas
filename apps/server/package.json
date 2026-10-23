@@ -1,0 +1,27 @@
+{
+  "name": "@contextatlas/server",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/app.ts"
+  },
+  "scripts": {
+    "dev": "bun scripts/build-assets.ts && bun run --parallel dev:assets dev:server",
+    "dev:assets": "bun scripts/build-assets.ts --watch",
+    "dev:server": "bun --env-file=../../.env scripts/dev-server.ts",
+    "build": "bun scripts/build.ts",
+    "start": "bun --env-file=../../.env src/main.ts seed && bun --env-file=../../.env src/main.ts serve",
+    "seed": "bun --env-file=../../.env src/main.ts seed"
+  },
+  "dependencies": {
+    "@contextatlas/core": "workspace:*",
+    "@hono/zod-validator": "^0.9.1",
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "hono": "^4.13.13",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.3.3",
+    "tailwindcss": "^4.3.3"
+  }
+}

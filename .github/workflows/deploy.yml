@@ -1,0 +1,100 @@
+# Push to main (or `bun run deploy`): check, build the binary, upload it to the VPS through the
+# Cloudflare tunnel, activate it, purge the CDN cache, smoke-test the live site. See docs/deploy.md.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run check
+      - run: bun run build
+        env:
+          BUN_TARGET: bun-linux-x64
+      - run: cp deploy/activate.sh dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+
+  deploy:
+    needs: build
+    # Skipped until the VPS exists: `bun run cloudflare:setup -- --github` sets DEPLOY_SSH_HOST.
+    if: vars.DEPLOY_SSH_HOST != ''
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ vars.SITE_URL }}
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          name: dist
+          path: dist/
+
+      - name: Install cloudflared
+        run: |
+          curl -fsSL -o cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+          sudo dpkg -i cloudflared.deb
+
+      - name: Configure SSH through Cloudflare Access
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<CONFIG
+          Host ${{ vars.DEPLOY_SSH_HOST }}
+            User deploy
+            IdentityFile ~/.ssh/deploy
+            StrictHostKeyChecking yes
+            ProxyCommand cloudflared access ssh --hostname %h --service-token-id $CF_ACCESS_CLIENT_ID --service-token-secret $CF_ACCESS_CLIENT_SECRET
+          CONFIG
+
+      - name: Upload and activate
+        env:
+          HOST: ${{ vars.DEPLOY_SSH_HOST }}
+          RELEASE: /opt/contextatlas/releases/${{ github.sha }}
+        run: |
+          chmod +x dist/contextatlas dist/activate.sh
+          rsync -az --delete dist/ "$HOST:$RELEASE/"
+          ssh "$HOST" contextatlas-activate "$RELEASE"
+
+      - name: Purge Cloudflare cache
+        if: vars.CLOUDFLARE_ZONE_ID != ''
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PURGE_TOKEN }}
+        run: |
+          # The release is already live here; a missing token must not turn the deploy red.
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::warning::CLOUDFLARE_PURGE_TOKEN is not set, so the cache was not purged. Pages refresh within a day (s-maxage=86400)."
+            exit 0
+          fi
+          curl -fsS -X POST "https://api.cloudflare.com/client/v4/zones/${{ vars.CLOUDFLARE_ZONE_ID }}/purge_cache" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" \
+            --data '{"purge_everything":true}'
+
+      - name: Smoke test
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          curl -fsS "$SITE_URL/healthz"
+          curl -fsS "$SITE_URL/llms.txt" | head -1 | grep -q "# Context Atlas"
+          curl -fsS "$SITE_URL/api/search?q=vercel" | grep -q '"vercel"'
+          curl -fsS -X POST "$SITE_URL/mcp" -H 'content-type: application/json' -H 'accept: application/json, text/event-stream' \
+            -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"search","arguments":{"query":"vercel"}}}' | grep -q vercel

@@ -1,0 +1,36 @@
+# Installed by deploy/bootstrap.sh to /etc/systemd/system/contextatlas.service.
+# Every restart (and so every deploy) re-imports the catalog before serving.
+[Unit]
+Description=Context Atlas (site, API and MCP)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=contextatlas
+Group=contextatlas
+WorkingDirectory=/opt/contextatlas/current
+Environment=DATABASE_PATH=/var/lib/contextatlas/atlas.db
+Environment=HOST=127.0.0.1
+Environment=PORT=3000
+Environment=NO_COLOR=1
+ExecStartPre=/opt/contextatlas/current/contextatlas seed
+ExecStart=/opt/contextatlas/current/contextatlas serve
+Restart=always
+RestartSec=2
+
+# Read-only everywhere except the database directory.
+StateDirectory=contextatlas
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

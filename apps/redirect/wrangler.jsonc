@@ -1,0 +1,11 @@
+// Replaces the old vinext Worker at contextatlas.levinstaudt.workers.dev (same name, so the same URL)
+// with a 301 to the new domain, keeping path and query. Deploy with `bun run deploy:redirect` only
+// once the new domain serves the site, or the old URL would redirect to nothing.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "contextatlas",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-22",
+  "workers_dev": true,
+  "vars": { "TARGET_ORIGIN": "https://contextatlas.dev" }
+}
