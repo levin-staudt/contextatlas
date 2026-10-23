@@ -21,7 +21,7 @@ describe("catalog", () => {
 
   for (const topic of topics) {
     test(`${topic.id} is complete`, () => {
-      for (const field of [topic.name, topic.role, topic.summary, topic.bestFor]) expect(field.trim()).not.toBe("");
+      for (const field of [topic.name, topic.role]) expect(field.trim()).not.toBe("");
       expect(topic.sources.length).toBeGreaterThan(0);
       const urls = topic.sources.map((source) => source.url);
       expect(new Set(urls).size).toBe(urls.length);

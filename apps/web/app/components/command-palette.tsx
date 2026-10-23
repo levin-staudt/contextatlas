@@ -7,7 +7,7 @@ import { SearchIcon } from "./icons";
 const openEvent = "contextatlas:search";
 
 type Props = {
-  topics: { id: string; name: string; role: string; region: string; summary: string }[];
+  topics: { id: string; name: string; role: string; region: string }[];
   docs: { title: string; section: string; path: string; headings: DocHeading[] }[];
 };
 
@@ -125,7 +125,7 @@ export function CommandPalette({ topics, docs }: Props) {
             <Command.Item
               key={topic.id}
               value={`${topic.name} ${topic.id}`}
-              keywords={[topic.role, topic.region, topic.summary]}
+              keywords={[topic.role, topic.region]}
               onSelect={() => go(`/#${topic.id}`)}
               className={item}
             >

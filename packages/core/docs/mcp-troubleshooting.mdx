@@ -33,7 +33,7 @@ If this lists `search`, `get_topic` and `list_topics`, the server works and the 
 | `406` and `Not Acceptable` | The request did not accept both `application/json` and `text/event-stream` | Use an MCP client, or send both in the `accept` header |
 | `404` with an HTML page | Wrong path | Use `/mcp` exactly |
 | `Unknown topic "…"` | `get_topic` with an id that does not exist | Let the agent use `search` or `list_topics` to find the id |
-| `search` returns no results | Every word must match | Use fewer or shorter words, such as `postgres` instead of `postgres database hosting` |
+| `search` returns no results | Every word must match | Use fewer or shorter words, such as `database` instead of `serverless database hosting` |
 
 ## Timeouts
 

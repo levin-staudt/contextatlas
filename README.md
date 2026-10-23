@@ -15,7 +15,7 @@ The site only links to the sources; every source belongs to its vendor.
 
 ## Add a source
 
-All content lives in [`packages/core/src/catalog.ts`](packages/core/src/catalog.ts). Add a `Source` to an existing topic, or a new `Topic` with a `role`, `bestFor` (when to pick it) and `signals` (how an agent detects it in a repo: `file(...)`, `dep(...)`, `env(...)` or `hint(...)`). Bump `updatedAt`. Then run `bun run check`; the catalog tests catch duplicate ids, bad URLs and malformed signals. The [add-source skill](.agents/skills/add-source/SKILL.md) has the details.
+All content lives in [`packages/core/src/catalog.ts`](packages/core/src/catalog.ts). Add a `Source` to an existing topic, or a new `Topic` with a `role` and `signals` (how an agent detects it in a repo: `file(...)`, `dep(...)`, `env(...)` or `hint(...)`). Bump `updatedAt`. Then run `bun run check`; the catalog tests catch duplicate ids, bad URLs and malformed signals. The [add-source skill](.agents/skills/add-source/SKILL.md) has the details.
 
 Everything the site serves is read from SQLite, which `bun run seed` (and every deploy) rebuilds from that file.
 

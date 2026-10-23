@@ -35,8 +35,6 @@ export function seedDatabase(db: Db, catalog: Catalog = defaultCatalog): SeedRes
             regionId: region.id,
             name: topic.name,
             role: topic.role,
-            summary: topic.summary,
-            bestFor: topic.bestFor,
             position: topicPosition,
           })
           .run();
@@ -55,7 +53,7 @@ export function seedDatabase(db: Db, catalog: Catalog = defaultCatalog): SeedRes
           result.signals += topic.signals.length;
         }
 
-        const topicBody = [topic.role, topic.summary, topic.bestFor, region.name, ...topic.signals.map(formatSignal)];
+        const topicBody = [topic.role, region.name, ...topic.signals.map(formatSignal)];
         tx.run(
           sql`INSERT INTO search_index (topic_id, source_position, name, body) VALUES (${topic.id}, NULL, ${topic.name}, ${topicBody.join("\n")})`,
         );

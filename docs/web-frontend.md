@@ -95,7 +95,7 @@ Done when: clicking through the docs no longer reloads the page, the docs work w
 
 - **React Router v8**, not v7 as first planned: v8 was current. Middleware is always on, so the load context is a `RouterContextProvider` holding `siteContext` (`apps/web/app/site.ts`). `entry.server.tsx` exports that context and `apps/server/src/web.ts` takes it from the loaded build, so there is one copy even though the server build bundles `site.ts` itself.
 - **Production bundling** needs `--define process.env.NODE_ENV="production" --conditions=production` in `apps/server/scripts/build.ts`; without them the binary contains the development builds of React and React Router.
-- **Search and filters** run on the client over data the page already has; the URL (`/?q=postgres&hide=mcp`) carries the state, so filtered views can be shared and work without JavaScript. The home loader does not rerun on these URL changes (`shouldRevalidate`).
+- **Search and filters** run on the client over data the page already has; the URL (`/?q=database&hide=mcp`) carries the state, so filtered views can be shared and work without JavaScript. The home loader does not rerun on these URL changes (`shouldRevalidate`).
 - **⌘K palette** (cmdk) searches tools, docs pages and docs sections from the root loader's data, without a request. Without JavaScript the header search is a link to the search form on `/`.
 - **`/agent`**: the mode is in the URL (`/agent?mode=new`), so both prompts work without JavaScript.
 - **Page routes** are listed once in `apps/web/app/pages.ts`: `routes.ts`, the client-side handling of links inside docs HTML and the Cloudflare cache rule all read it.

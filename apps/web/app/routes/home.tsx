@@ -17,8 +17,6 @@ export function loader({ context }: Route.LoaderArgs) {
       id: topic.id,
       name: topic.name,
       role: topic.role,
-      summary: topic.summary,
-      bestFor: topic.bestFor,
       signals: topic.signals.map(formatSignal),
       sources: topic.sources,
     })),
@@ -48,9 +46,7 @@ function withSearchText(regions: Data["regions"]) {
     ...region,
     topics: region.topics.map((topic) => ({
       ...topic,
-      search: [topic.name, topic.role, topic.summary, topic.bestFor, region.name, ...topic.signals]
-        .join("\n")
-        .toLowerCase(),
+      search: [topic.name, topic.role, region.name, ...topic.signals].join("\n").toLowerCase(),
       sources: topic.sources.map((source) => ({
         ...source,
         host: displayUrl(source.url),
@@ -323,10 +319,6 @@ function TopicCard({ topic, kinds }: { topic: Regions[number]["topics"][number];
         </h3>
         <span className="font-sans text-sm text-sea">{topic.role}</span>
       </div>
-      <p className="mt-0.5 leading-relaxed text-ink-soft">{topic.summary}</p>
-      <p className="mt-1 leading-relaxed">
-        <span className="font-semibold text-sea">Best for:</span> {topic.bestFor}
-      </p>
       <ul className="mt-3 space-y-2">
         {topic.sources.map((source) => (
           <li key={source.url + source.kind}>

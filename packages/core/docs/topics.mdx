@@ -10,7 +10,7 @@ updatedAt: 2026-10-23
 
 The [home page](/) lists every topic, grouped by region.
 
-- **Search.** Type into "Search the atlas" to filter as you type. It matches names, roles, summaries, detection signals and source titles and URLs, so `postgres`, `auth` or `turbo.json` all work. The search is kept in the URL, as in [/?q=postgres](/?q=postgres), so you can share it.
+- **Search.** Type into "Search the atlas" to filter as you type. It matches names, roles, regions, detection signals and source titles and URLs, so `database`, `auth` or `turbo.json` all work. The search is kept in the URL, as in [/?q=database](/?q=database), so you can share it.
 - **Filter by kind.** The legend lists the source kinds. Click a symbol to hide that kind of source, for example to see only MCP servers.
 - **Jump to a region.** The region links take you to Cloud providers, Frameworks, Standards or CLIs.
 - **Link to a topic.** Every topic has an anchor with its id, such as [/#supabase](/#supabase).
@@ -21,9 +21,7 @@ Without JavaScript the page shows everything; search and filters are added on to
 
 Take Neon as an example:
 
-- **Name and role:** "Neon", "Database". The role is the job the tool does in a stack.
-- **Summary:** one sentence on what it is. "Serverless Postgres with branching."
-- **Best for:** when to pick it over the alternatives. Agents use this line to propose a stack.
+- **Name and role:** "Neon", "Postgres database". The role is the job the tool does in a stack, and for databases the engine.
 - **Sources:** the links Neon publishes for agents, each marked with its kind.
 
 The detection signals do not show on the page, but they are in every agent file. For Neon, they are the `@neondatabase/serverless` dependency and a `DATABASE_URL` that points to `*.neon.tech`.

@@ -5,7 +5,7 @@ import { llmsUrl, mcpUrl, siteUrl } from "./site";
 import type { Catalog, Topic } from "./types";
 
 function topicBlock(topic: Topic) {
-  const lines = [`### ${topic.name}`, `Role: ${topic.role}. ${topic.summary}`, `Best for: ${topic.bestFor}`];
+  const lines = [`### ${topic.name}`, `Role: ${topic.role}`];
   if (topic.signals.length) lines.push(`Signals: ${topic.signals.map(formatSignal).join(", ")}`);
   for (const source of topic.sources) {
     lines.push(`- [${source.title}](${source.url}): ${kinds[source.kind].label}`);
@@ -65,7 +65,7 @@ ${docsList(docs)}
 ### New project: find a stack
 
 1. Ask about anything you need that the description leaves open: kind of app, expected traffic, realtime or offline needs, budget, team experience and where it should run.
-2. Propose one stack, one tool per role (hosting, framework, database, auth, UI, and so on), using the "Role" and "Best for" lines below. Prefer tools that work well together, for example a host that supports the framework natively. Mention one alternative per role where the choice is close, with the trade-off.
+2. Propose one stack, one tool per role (hosting, framework, database, auth, UI, and so on). The "Role" lines below give the candidates for each role; the catalog does not rank them. To choose between candidates, fetch their llms.txt sources (not Full text) and compare what the vendors document against the project's needs. Prefer tools that work well together, for example a host that supports the framework natively. Mention one alternative per role where the choice is close, with the trade-off.
 3. Wait for approval. Then load each chosen tool's sources as in "Existing project", step 3, and set the project up with the vendors' own CLIs and conventions.
 
 Source kinds: ${Object.values(kinds)

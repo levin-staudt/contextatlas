@@ -39,8 +39,6 @@ function toTopic(row: TopicRow, details: ReturnType<typeof loadDetails>) {
     id: row.id,
     name: row.name,
     role: row.role,
-    summary: row.summary,
-    bestFor: row.bestFor,
     signals: details.signals(row.id),
     sources: details.sources(row.id),
   };

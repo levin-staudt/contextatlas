@@ -5,7 +5,7 @@ import type { Catalog, Region, Signal, SourceKind } from "./types";
  * imports it into SQLite and everything the site, API and MCP serve is read from there.
  * Bump `updatedAt` when you change it; agents see it as the last update date.
  */
-export const updatedAt = "2026-10-22";
+export const updatedAt = "2026-10-23";
 
 export const kinds: Record<SourceKind, { label: string; description: string }> = {
   llms: { label: "llms.txt", description: "Machine-readable index of the docs" },
@@ -32,8 +32,6 @@ const regions: Region[] = [
         id: "vercel",
         name: "Vercel",
         role: "Hosting",
-        summary: "Frontend cloud with Functions, storage, AI Gateway and preview deployments.",
-        bestFor: "Next.js and other web frameworks, preview deployments per pull request, AI apps.",
         signals: [file("vercel.json"), file("vercel.ts"), file(".vercel/"), dep("@vercel/*")],
         sources: [
           { kind: "llms", title: "Vercel llms.txt", url: "https://vercel.com/llms.txt" },
@@ -48,8 +46,6 @@ const regions: Region[] = [
         id: "cloudflare",
         name: "Cloudflare",
         role: "Hosting",
-        summary: "Workers, Pages, D1, R2, KV, Durable Objects and the rest of the developer platform.",
-        bestFor: "Edge-first apps, low cost at scale, storage and queues on the same platform.",
         signals: [
           file("wrangler.toml"),
           file("wrangler.json"),
@@ -82,8 +78,6 @@ const regions: Region[] = [
         id: "railway",
         name: "Railway",
         role: "Hosting",
-        summary: "Deploy services, databases and cron jobs from a repo or a Docker image.",
-        bestFor: "Long-running servers, workers and databases without managing infrastructure.",
         signals: [file("railway.json"), file("railway.toml"), file("nixpacks.toml")],
         sources: [
           { kind: "llms", title: "Railway docs llms.txt", url: "https://docs.railway.com/llms.txt" },
@@ -101,9 +95,7 @@ const regions: Region[] = [
       {
         id: "supabase",
         name: "Supabase",
-        role: "Database and backend",
-        summary: "Postgres with auth, storage, realtime and edge functions.",
-        bestFor: "A full backend on Postgres with auth and storage included.",
+        role: "Postgres database and backend",
         signals: [file("supabase/"), file("supabase/config.toml"), dep("@supabase/supabase-js"), dep("@supabase/ssr")],
         sources: [
           { kind: "llms", title: "Supabase llms.txt", url: "https://supabase.com/llms.txt" },
@@ -129,9 +121,7 @@ const regions: Region[] = [
       {
         id: "neon",
         name: "Neon",
-        role: "Database",
-        summary: "Serverless Postgres with branching.",
-        bestFor: "Postgres for serverless hosting, a database branch per preview deployment.",
+        role: "Postgres database",
         signals: [dep("@neondatabase/serverless"), hint("DATABASE_URL pointing to *.neon.tech")],
         sources: [
           { kind: "llms", title: "Neon llms.txt", url: "https://neon.com/llms.txt" },
@@ -149,8 +139,6 @@ const regions: Region[] = [
         id: "convex",
         name: "Convex",
         role: "Database and backend",
-        summary: "Reactive backend: database, server functions and sync in TypeScript.",
-        bestFor: "Realtime apps written end to end in TypeScript, without SQL or an ORM.",
         signals: [file("convex/"), file("convex.json"), dep("convex")],
         sources: [
           { kind: "llms", title: "Convex llms.txt", url: "https://docs.convex.dev/llms.txt" },
@@ -164,27 +152,21 @@ const regions: Region[] = [
       {
         id: "planetscale",
         name: "PlanetScale",
-        role: "Database",
-        summary: "Managed MySQL (Vitess) and Postgres.",
-        bestFor: "High-traffic relational databases that need horizontal scaling.",
+        role: "MySQL and Postgres database",
         signals: [dep("@planetscale/database"), file("pscale.yml")],
         sources: [{ kind: "llms", title: "PlanetScale llms.txt", url: "https://planetscale.com/llms.txt" }],
       },
       {
         id: "turso",
         name: "Turso",
-        role: "Database",
-        summary: "SQLite at the edge with libSQL.",
-        bestFor: "Many small databases, for example one per user or tenant.",
+        role: "SQLite database",
         signals: [dep("@libsql/client"), dep("@tursodatabase/*")],
         sources: [{ kind: "llms", title: "Turso docs llms.txt", url: "https://docs.turso.tech/llms.txt" }],
       },
       {
         id: "upstash",
         name: "Upstash",
-        role: "Cache and queues",
-        summary: "Serverless Redis, QStash, Vector and Workflow.",
-        bestFor: "Rate limiting, caching and background jobs from serverless functions.",
+        role: "Redis cache and queues",
         signals: [dep("@upstash/*")],
         sources: [{ kind: "llms", title: "Upstash docs llms.txt", url: "https://upstash.com/docs/llms.txt" }],
       },
@@ -192,8 +174,6 @@ const regions: Region[] = [
         id: "claude",
         name: "Claude Platform",
         role: "AI models",
-        summary: "Anthropic's Developer Platform: Claude models, the Messages API and the Agent SDK.",
-        bestFor: "Coding, agents and long-context reasoning in your product.",
         signals: [dep("@anthropic-ai/*"), env("ANTHROPIC_API_KEY")],
         sources: [
           { kind: "llms", title: "Claude platform llms.txt", url: "https://platform.claude.com/llms.txt" },
@@ -204,8 +184,6 @@ const regions: Region[] = [
         id: "openai",
         name: "OpenAI Developer Platform",
         role: "AI models",
-        summary: "OpenAI's API for models, the Responses API, tools and agents, plus the Codex developer tools.",
-        bestFor: "Multimodal models, realtime voice and tool calling from the vendor that ships the models first.",
         signals: [dep("openai"), dep("@openai/*"), env("OPENAI_API_KEY")],
         sources: [
           { kind: "llms", title: "OpenAI Developers llms.txt", url: "https://developers.openai.com/llms.txt" },
@@ -216,8 +194,6 @@ const regions: Region[] = [
         id: "openrouter",
         name: "OpenRouter",
         role: "AI gateway",
-        summary: "One OpenAI-compatible API in front of hundreds of models from many providers.",
-        bestFor: "Calling many model providers with one key and one bill, with fallbacks and cost tracking.",
         signals: [
           env("OPENROUTER_API_KEY"),
           hint("openrouter.ai/api/v1 base URL"),
@@ -236,8 +212,6 @@ const regions: Region[] = [
         id: "clerk",
         name: "Clerk",
         role: "Auth",
-        summary: "Hosted auth and user management.",
-        bestFor: "Sign-in, organizations and user profiles without building them yourself.",
         signals: [dep("@clerk/*")],
         sources: [
           { kind: "llms", title: "Clerk llms.txt", url: "https://clerk.com/llms.txt" },
@@ -248,8 +222,6 @@ const regions: Region[] = [
         id: "stripe",
         name: "Stripe",
         role: "Payments",
-        summary: "Payments, subscriptions and billing.",
-        bestFor: "Checkout, subscriptions and invoices.",
         signals: [dep("stripe"), dep("@stripe/*")],
         sources: [
           { kind: "llms", title: "Stripe docs llms.txt", url: "https://docs.stripe.com/llms.txt" },
@@ -261,8 +233,6 @@ const regions: Region[] = [
         id: "resend",
         name: "Resend",
         role: "Email",
-        summary: "Email API for developers.",
-        bestFor: "Transactional email written as React components.",
         signals: [dep("resend"), dep("react-email"), dep("@react-email/*")],
         sources: [
           { kind: "llms", title: "Resend docs llms.txt", url: "https://resend.com/docs/llms.txt" },
@@ -273,8 +243,6 @@ const regions: Region[] = [
         id: "sentry",
         name: "Sentry",
         role: "Monitoring",
-        summary: "Error monitoring, tracing and session replay.",
-        bestFor: "Finding and debugging production errors.",
         signals: [dep("@sentry/*"), file("sentry.*.config.ts")],
         sources: [
           { kind: "llms", title: "Sentry docs llms.txt", url: "https://docs.sentry.io/llms.txt" },
@@ -285,8 +253,6 @@ const regions: Region[] = [
         id: "contabo",
         name: "Contabo",
         role: "Hosting",
-        summary: "VPS and dedicated servers with large resource allowances.",
-        bestFor: "Self-managed Linux servers where CPU, RAM and storage matter more than managed services.",
         signals: [hint("cntb CLI"), hint("Contabo Terraform provider")],
         sources: [
           { kind: "llms", title: "Contabo docs llms.txt", url: "https://docs.contabo.com/llms.txt" },
@@ -303,8 +269,6 @@ const regions: Region[] = [
         id: "hetzner",
         name: "Hetzner",
         role: "Hosting",
-        summary: "Cloud servers, networks, load balancers and storage in European data centers.",
-        bestFor: "Low-cost cloud servers in Europe, managed with the console, the API or hcloud.",
         signals: [env("HCLOUD_TOKEN"), hint("hcloud CLI"), hint("Hetzner Cloud Terraform provider")],
         sources: [
           { kind: "llms", title: "Hetzner docs llms.txt", url: "https://docs.hetzner.com/llms.txt" },
@@ -320,8 +284,6 @@ const regions: Region[] = [
         id: "ovhcloud",
         name: "OVHcloud",
         role: "Hosting",
-        summary: "Public and private cloud, VPS, bare metal and managed databases from a European provider.",
-        bestFor: "European hosting with sovereignty requirements, from VPS to bare metal.",
         signals: [env("OVH_APPLICATION_KEY"), hint("ovhcloud CLI")],
         sources: [
           { kind: "llms", title: "OVHcloud docs llms.txt", url: "https://docs.ovhcloud.com/en/llms.txt" },
@@ -338,8 +300,6 @@ const regions: Region[] = [
         id: "digitalocean",
         name: "DigitalOcean",
         role: "Hosting",
-        summary: "Droplets, Kubernetes, managed databases, Spaces object storage and App Platform.",
-        bestFor: "Simple, predictable VPS hosting with managed databases and a well-documented API.",
         signals: [env("DIGITALOCEAN_ACCESS_TOKEN"), hint("doctl CLI"), hint("digitalocean Terraform provider")],
         sources: [
           { kind: "llms", title: "DigitalOcean docs llms.txt", url: "https://docs.digitalocean.com/llms.txt" },
@@ -352,8 +312,6 @@ const regions: Region[] = [
         id: "hostinger",
         name: "Hostinger",
         role: "Hosting",
-        summary: "Web hosting, VPS and an AI website builder, with a public API and CLI.",
-        bestFor: "Affordable VPS and website hosting, managed by an agent through the API and CLI.",
         signals: [env("HOSTINGER_API_TOKEN"), hint("hostinger-api-mcp"), hint("hostinger CLI")],
         sources: [
           { kind: "llms", title: "Hostinger docs llms.txt", url: "https://docs.hostinger.com/llms.txt" },
@@ -369,8 +327,6 @@ const regions: Region[] = [
         id: "fly",
         name: "Fly.io",
         role: "Hosting",
-        summary: "Global cloud for full-stack apps on Fly Machines, with managed Postgres and flyctl.",
-        bestFor: "Apps close to users in several regions, long-running servers and containers deployed from the CLI.",
         signals: [file("fly.toml"), hint("flyctl CLI")],
         sources: [
           { kind: "llms", title: "Fly.io llms.txt", url: "https://fly.io/llms.txt" },
@@ -383,8 +339,6 @@ const regions: Region[] = [
         id: "render",
         name: "Render",
         role: "Hosting",
-        summary: "Web services, background workers, cron jobs and managed Postgres from a repo or a Docker image.",
-        bestFor: "Full-stack apps, workers and databases on a managed platform, with Blueprints for the whole setup.",
         signals: [file("render.yaml"), hint("render CLI")],
         sources: [
           { kind: "llms", title: "Render docs llms.txt", url: "https://render.com/docs/llms.txt" },
@@ -404,8 +358,6 @@ const regions: Region[] = [
         id: "netlify",
         name: "Netlify",
         role: "Hosting",
-        summary: "Sites and web apps with serverless and edge functions, forms, blob storage and deploy previews.",
-        bestFor: "Frontend sites and JAMstack apps with functions, deploy previews per branch and forms.",
         signals: [file("netlify.toml"), file(".netlify/"), dep("netlify-cli"), dep("@netlify/*")],
         sources: [
           { kind: "llms", title: "Netlify llms.txt", url: "https://docs.netlify.com/llms.txt" },
@@ -428,8 +380,6 @@ const regions: Region[] = [
         id: "tailscale",
         name: "Tailscale",
         role: "Networking",
-        summary: "Zero-trust private network (WireGuard-based) that connects servers, laptops and CI runners.",
-        bestFor: "Reaching servers and internal services without public ports or a classic VPN.",
         signals: [env("TS_AUTHKEY"), hint("tailscale Docker image"), hint("tailscale Terraform provider")],
         sources: [
           { kind: "llms", title: "Tailscale docs llms.txt", url: "https://tailscale.com/docs/llms.txt" },
@@ -447,8 +397,6 @@ const regions: Region[] = [
         id: "nextjs",
         name: "Next.js",
         role: "Web framework",
-        summary: "React framework with App Router, Server Components and Server Actions.",
-        bestFor: "Full-stack React apps, the most widely supported option for hosting and agents.",
         signals: [file("next.config.{js,ts,mjs}"), dep("next"), hint("app/ or pages/ directory")],
         sources: [
           { kind: "llms", title: "Next.js docs llms.txt", url: "https://nextjs.org/docs/llms.txt" },
@@ -462,8 +410,6 @@ const regions: Region[] = [
         id: "vinext",
         name: "vinext",
         role: "Web framework",
-        summary: "The Next.js API surface reimplemented on Vite, deployed to Cloudflare Workers.",
-        bestFor: "Next.js-style apps that should run on Cloudflare Workers.",
         signals: [dep("vinext"), dep("@vinext/cloudflare"), hint("vite.config.ts with vinext()")],
         sources: [
           { kind: "docs", title: "vinext documentation", url: "https://vinext.dev/docs" },
@@ -479,8 +425,6 @@ const regions: Region[] = [
         id: "svelte",
         name: "Svelte and SvelteKit",
         role: "Web framework",
-        summary: "Compiler-first UI framework and its app framework.",
-        bestFor: "Fast, small bundles and a simple component model.",
         signals: [file("svelte.config.js"), file("**/*.svelte"), dep("@sveltejs/kit")],
         sources: [
           { kind: "llms", title: "Svelte llms.txt", url: "https://svelte.dev/llms.txt" },
@@ -494,8 +438,6 @@ const regions: Region[] = [
         id: "nuxt",
         name: "Nuxt",
         role: "Web framework",
-        summary: "Vue framework with file-based routing and server routes.",
-        bestFor: "Full-stack apps for teams that prefer Vue.",
         signals: [file("nuxt.config.ts"), dep("nuxt")],
         sources: [{ kind: "llms", title: "Nuxt llms.txt", url: "https://nuxt.com/llms.txt" }],
       },
@@ -503,8 +445,6 @@ const regions: Region[] = [
         id: "astro",
         name: "Astro",
         role: "Web framework",
-        summary: "Content-first framework with islands.",
-        bestFor: "Content sites, docs and marketing pages with little JavaScript.",
         signals: [file("astro.config.mjs"), file("**/*.astro"), dep("astro")],
         sources: [
           {
@@ -518,8 +458,6 @@ const regions: Region[] = [
         id: "tanstack",
         name: "TanStack",
         role: "Web framework",
-        summary: "Start, Router, Query, Table and Form.",
-        bestFor: "Type-safe routing and data fetching, with or without a server.",
         signals: [dep("@tanstack/*")],
         sources: [{ kind: "llms", title: "TanStack llms.txt", url: "https://tanstack.com/llms.txt" }],
       },
@@ -527,8 +465,6 @@ const regions: Region[] = [
         id: "hono",
         name: "Hono",
         role: "API framework",
-        summary: "Small web framework for Workers, Bun, Deno and Node.",
-        bestFor: "APIs that should run on any JavaScript runtime.",
         signals: [dep("hono")],
         sources: [{ kind: "llms", title: "Hono llms.txt", url: "https://hono.dev/llms.txt" }],
       },
@@ -536,8 +472,6 @@ const regions: Region[] = [
         id: "expo",
         name: "Expo",
         role: "Mobile framework",
-        summary: "React Native apps for iOS, Android and web.",
-        bestFor: "Native mobile apps from one React codebase.",
         signals: [dep("expo"), file("eas.json"), hint("app.json with expo key")],
         sources: [{ kind: "llms", title: "Expo docs llms.txt", url: "https://docs.expo.dev/llms.txt" }],
       },
@@ -545,8 +479,6 @@ const regions: Region[] = [
         id: "react",
         name: "React",
         role: "UI library",
-        summary: "The component library underneath Next.js, vinext, Expo and others.",
-        bestFor: "The largest ecosystem of components and the most training data for agents.",
         signals: [dep("react"), file("**/*.{jsx,tsx}")],
         sources: [
           { kind: "llms", title: "React llms.txt", url: "https://react.dev/llms.txt" },
@@ -557,8 +489,6 @@ const regions: Region[] = [
         id: "shadcn",
         name: "shadcn/ui",
         role: "UI components",
-        summary: "Copy-in components built on Radix or Base UI and Tailwind.",
-        bestFor: "Accessible components you own and can restyle freely.",
         signals: [file("components.json"), file("components/ui/")],
         sources: [
           { kind: "llms", title: "shadcn/ui llms.txt", url: "https://ui.shadcn.com/llms.txt" },
@@ -569,8 +499,6 @@ const regions: Region[] = [
         id: "tailwind",
         name: "Tailwind CSS",
         role: "Styling",
-        summary: "Utility-first CSS.",
-        bestFor: "Styling directly in markup, the default for most React starters.",
         signals: [dep("tailwindcss"), file("tailwind.config.*"), hint('@import "tailwindcss" in CSS')],
         sources: [{ kind: "docs", title: "Tailwind CSS docs", url: "https://tailwindcss.com/docs" }],
       },
@@ -578,8 +506,6 @@ const regions: Region[] = [
         id: "motion",
         name: "Motion",
         role: "Animation",
-        summary: "Animation library for React, Vue and vanilla JS (formerly Framer Motion).",
-        bestFor: "Gestures, layout animations and transitions.",
         signals: [dep("motion"), dep("framer-motion")],
         sources: [{ kind: "docs", title: "Motion docs", url: "https://motion.dev/docs" }],
       },
@@ -587,8 +513,6 @@ const regions: Region[] = [
         id: "ai-sdk",
         name: "AI SDK",
         role: "AI",
-        summary: "TypeScript toolkit for model calls, streaming, tools and agents.",
-        bestFor: "Chat, streaming and tool calling with any model provider.",
         signals: [dep("ai"), dep("@ai-sdk/*")],
         sources: [
           { kind: "full", title: "AI SDK docs, full text", url: "https://ai-sdk.dev/llms.txt" },
@@ -599,8 +523,6 @@ const regions: Region[] = [
         id: "cloudflare-agents",
         name: "Cloudflare Agents",
         role: "AI",
-        summary: "Stateful agents on Durable Objects.",
-        bestFor: "Long-lived agents with their own state, schedules and WebSockets.",
         signals: [dep("agents"), hint("Durable Object bindings named *Agent")],
         sources: [
           { kind: "docs", title: "Cloudflare Agents docs", url: "https://developers.cloudflare.com/agents/" },
@@ -611,8 +533,6 @@ const regions: Region[] = [
         id: "mastra",
         name: "Mastra",
         role: "AI",
-        summary: "TypeScript framework for agents, workflows and RAG.",
-        bestFor: "Agents with memory, workflows and evals in one framework.",
         signals: [dep("@mastra/*")],
         sources: [{ kind: "llms", title: "Mastra llms.txt", url: "https://mastra.ai/llms.txt" }],
       },
@@ -620,8 +540,6 @@ const regions: Region[] = [
         id: "drizzle",
         name: "Drizzle ORM",
         role: "ORM",
-        summary: "TypeScript ORM that stays close to SQL.",
-        bestFor: "Type-safe SQL with small bundles that work on serverless and edge.",
         signals: [file("drizzle.config.ts"), dep("drizzle-orm"), dep("drizzle-kit")],
         sources: [{ kind: "llms", title: "Drizzle llms.txt", url: "https://orm.drizzle.team/llms.txt" }],
       },
@@ -629,8 +547,6 @@ const regions: Region[] = [
         id: "prisma",
         name: "Prisma",
         role: "ORM",
-        summary: "ORM with schema-first modelling and Prisma Postgres.",
-        bestFor: "A declarative schema with generated client and migrations.",
         signals: [file("prisma/schema.prisma"), file("prisma.config.ts"), dep("@prisma/client")],
         sources: [
           { kind: "llms", title: "Prisma docs llms.txt", url: "https://www.prisma.io/docs/llms.txt" },
@@ -641,8 +557,6 @@ const regions: Region[] = [
         id: "better-auth",
         name: "Better Auth",
         role: "Auth",
-        summary: "Framework-agnostic TypeScript auth library.",
-        bestFor: "Self-hosted auth stored in your own database.",
         signals: [dep("better-auth"), hint("auth.ts with betterAuth()")],
         sources: [
           { kind: "llms", title: "Better Auth llms.txt", url: "https://www.better-auth.com/llms.txt" },
@@ -653,8 +567,6 @@ const regions: Region[] = [
         id: "zod",
         name: "Zod",
         role: "Validation",
-        summary: "TypeScript-first schema validation.",
-        bestFor: "Validating forms, API input and environment variables.",
         signals: [dep("zod")],
         sources: [{ kind: "llms", title: "Zod llms.txt", url: "https://zod.dev/llms.txt" }],
       },
@@ -662,8 +574,6 @@ const regions: Region[] = [
         id: "vite",
         name: "Vite",
         role: "Build tool",
-        summary: "Dev server and bundler under most modern frameworks.",
-        bestFor: "Single-page apps and as the base for vinext, SvelteKit, Nuxt and Astro.",
         signals: [file("vite.config.{ts,js}"), dep("vite")],
         sources: [{ kind: "llms", title: "Vite llms.txt", url: "https://vite.dev/llms.txt" }],
       },
@@ -671,8 +581,6 @@ const regions: Region[] = [
         id: "typescript",
         name: "TypeScript",
         role: "Language",
-        summary: "Types for JavaScript.",
-        bestFor: "Every project above; agents make fewer mistakes with types.",
         signals: [file("tsconfig.json")],
         sources: [{ kind: "docs", title: "TypeScript handbook", url: "https://www.typescriptlang.org/docs/" }],
       },
@@ -687,8 +595,6 @@ const regions: Region[] = [
         id: "agent-skills",
         name: "Agent Skills",
         role: "Instructions",
-        summary: "Folders of instructions and scripts that agents load on demand.",
-        bestFor: "Teaching an agent a repeatable workflow or a vendor's conventions.",
         signals: [file("**/SKILL.md"), file(".agents/skills/"), file(".claude/skills/")],
         sources: [
           { kind: "docs", title: "agentskills.io", url: "https://agentskills.io/home" },
@@ -707,8 +613,6 @@ const regions: Region[] = [
         id: "mcp",
         name: "Model Context Protocol",
         role: "Tools",
-        summary: "Open protocol for connecting agents to tools and data.",
-        bestFor: "Giving an agent live access to a service: deployments, databases, browsers.",
         signals: [file(".mcp.json"), file("mcp.json"), dep("@modelcontextprotocol/sdk")],
         sources: [
           { kind: "llms", title: "MCP llms.txt", url: "https://modelcontextprotocol.io/llms.txt" },
@@ -724,10 +628,6 @@ const regions: Region[] = [
         id: "a2a",
         name: "Agent2Agent (A2A)",
         role: "Agent protocol",
-        summary:
-          "Open protocol, donated to the Linux Foundation, for agents built on different frameworks to discover and work with each other.",
-        bestFor:
-          "Letting agents from different frameworks or vendors delegate tasks to each other. Use MCP for tools and data.",
         signals: [dep("@a2a-js/sdk"), hint("a2a-sdk Python dependency"), hint("/.well-known/agent-card.json")],
         sources: [
           { kind: "llms", title: "A2A llms.txt", url: "https://a2a-protocol.org/llms.txt" },
@@ -739,8 +639,6 @@ const regions: Region[] = [
         id: "agents-md",
         name: "AGENTS.md",
         role: "Instructions",
-        summary: "A README for agents: project instructions in the repo root.",
-        bestFor: "Project rules every agent should follow in this repository.",
         signals: [file("AGENTS.md"), file("CLAUDE.md"), file(".github/copilot-instructions.md")],
         sources: [
           { kind: "docs", title: "agents.md", url: "https://agents.md" },
@@ -755,8 +653,6 @@ const regions: Region[] = [
         id: "llms-txt",
         name: "llms.txt",
         role: "Docs index",
-        summary: "A Markdown index of a site's docs, written for language models.",
-        bestFor: "Making your own docs readable for agents.",
         signals: [file("public/llms.txt"), hint("a route that serves /llms.txt, e.g. app/llms.txt/route.ts")],
         sources: [
           { kind: "docs", title: "llmstxt.org", url: "https://llmstxt.org" },
@@ -767,8 +663,6 @@ const regions: Region[] = [
         id: "doc-servers",
         name: "Documentation servers",
         role: "Docs index",
-        summary: "MCP services that fetch current docs for any library on request.",
-        bestFor: "Libraries that publish no llms.txt of their own.",
         signals: [],
         sources: [
           { kind: "mcp", title: "Context7", url: "https://context7.com" },
@@ -787,8 +681,6 @@ const regions: Region[] = [
         id: "vercel-cli",
         name: "Vercel CLI",
         role: "Deploy",
-        summary: "Deploy, link projects, manage env vars and read logs.",
-        bestFor: "Projects hosted on Vercel.",
         signals: [dep("vercel"), file(".vercel/project.json")],
         sources: [{ kind: "docs", title: "Vercel CLI", url: "https://vercel.com/docs/cli" }],
       },
@@ -796,8 +688,6 @@ const regions: Region[] = [
         id: "cloudflare-cli",
         name: "Wrangler and cf",
         role: "Deploy",
-        summary: "Develop and deploy Workers and manage Cloudflare resources.",
-        bestFor: "Projects hosted on Cloudflare.",
         signals: [dep("wrangler"), dep("cf")],
         sources: [
           { kind: "docs", title: "Wrangler", url: "https://developers.cloudflare.com/workers/wrangler/" },
@@ -808,8 +698,6 @@ const regions: Region[] = [
         id: "railway-cli",
         name: "Railway CLI",
         role: "Deploy",
-        summary: "Deploy services and run commands with Railway variables.",
-        bestFor: "Projects hosted on Railway.",
         signals: [file("railway.json")],
         sources: [{ kind: "docs", title: "Railway CLI", url: "https://docs.railway.com/cli" }],
       },
@@ -817,8 +705,6 @@ const regions: Region[] = [
         id: "supabase-cli",
         name: "Supabase CLI",
         role: "Database",
-        summary: "Local Supabase stack, migrations, type generation and edge functions.",
-        bestFor: "Projects on Supabase.",
         signals: [file("supabase/config.toml"), dep("supabase")],
         sources: [
           {
@@ -832,8 +718,6 @@ const regions: Region[] = [
         id: "neon-cli",
         name: "Neon CLI",
         role: "Database",
-        summary: "Create projects, branches and connection strings.",
-        bestFor: "Projects on Neon.",
         signals: [dep("neonctl")],
         sources: [{ kind: "docs", title: "Neon CLI", url: "https://neon.com/docs/reference/neon-cli" }],
       },
@@ -841,8 +725,6 @@ const regions: Region[] = [
         id: "convex-cli",
         name: "Convex CLI",
         role: "Database",
-        summary: "Run the dev deployment, deploy functions and import data.",
-        bestFor: "Projects on Convex.",
         signals: [dep("convex")],
         sources: [{ kind: "docs", title: "Convex CLI", url: "https://docs.convex.dev/cli" }],
       },
@@ -850,8 +732,6 @@ const regions: Region[] = [
         id: "orm-cli",
         name: "Drizzle Kit and Prisma CLI",
         role: "Database",
-        summary: "Generate and apply database migrations.",
-        bestFor: "Projects with Drizzle or Prisma.",
         signals: [dep("drizzle-kit"), dep("prisma")],
         sources: [
           { kind: "docs", title: "Drizzle Kit", url: "https://orm.drizzle.team/docs/kit-overview" },
@@ -866,8 +746,6 @@ const regions: Region[] = [
         id: "framework-clis",
         name: "Framework CLIs",
         role: "Scaffold",
-        summary: "Create, run and build apps.",
-        bestFor: "Starting a new project with a framework's own defaults.",
         signals: [hint("next, vinext, sv or expo in package.json scripts")],
         sources: [
           { kind: "docs", title: "Next.js CLI", url: "https://nextjs.org/docs/app/api-reference/cli" },
@@ -884,8 +762,6 @@ const regions: Region[] = [
         id: "shadcn-cli",
         name: "shadcn CLI",
         role: "Scaffold",
-        summary: "Add components and registries to a project.",
-        bestFor: "Projects using shadcn/ui.",
         signals: [file("components.json")],
         sources: [{ kind: "docs", title: "shadcn CLI", url: "https://ui.shadcn.com/docs/cli" }],
       },
@@ -893,8 +769,6 @@ const regions: Region[] = [
         id: "skills-cli",
         name: "skills CLI",
         role: "Agent tooling",
-        summary: "Install Agent Skills from GitHub with npx skills add.",
-        bestFor: "Adding vendor skills to Claude Code, Codex, Cursor and others.",
         signals: [file(".agents/skills/"), file("skills-lock.json")],
         sources: [{ kind: "docs", title: "vercel-labs/skills", url: "https://github.com/vercel-labs/skills" }],
       },
@@ -902,8 +776,6 @@ const regions: Region[] = [
         id: "mcp-inspector",
         name: "MCP Inspector",
         role: "Agent tooling",
-        summary: "Test and debug MCP servers interactively.",
-        bestFor: "Building your own MCP server.",
         signals: [dep("@modelcontextprotocol/inspector")],
         sources: [
           {
@@ -917,8 +789,6 @@ const regions: Region[] = [
         id: "coding-agents",
         name: "Coding agent CLIs",
         role: "Agent tooling",
-        summary: "Agents that work in your terminal and repository.",
-        bestFor: "Running the Context Atlas prompt.",
         signals: [file("CLAUDE.md"), file("AGENTS.md"), file(".claude/"), file(".codex/"), file(".gemini/")],
         sources: [
           { kind: "llms", title: "Claude Code docs llms.txt", url: "https://code.claude.com/docs/llms.txt" },
@@ -930,8 +800,6 @@ const regions: Region[] = [
         id: "github-cli",
         name: "GitHub CLI",
         role: "Workflow",
-        summary: "Pull requests, issues, releases and Actions from the terminal.",
-        bestFor: "Repositories hosted on GitHub.",
         signals: [file(".github/")],
         sources: [{ kind: "docs", title: "gh manual", url: "https://cli.github.com/manual/" }],
       },
@@ -939,8 +807,6 @@ const regions: Region[] = [
         id: "stripe-cli",
         name: "Stripe CLI",
         role: "Workflow",
-        summary: "Forward webhooks locally and trigger test events.",
-        bestFor: "Developing a Stripe integration.",
         signals: [dep("stripe")],
         sources: [{ kind: "docs", title: "Stripe CLI", url: "https://docs.stripe.com/stripe-cli" }],
       },
@@ -948,8 +814,6 @@ const regions: Region[] = [
         id: "tailscale-cli",
         name: "Tailscale CLI",
         role: "Networking",
-        summary: "Connect a machine to your tailnet, check its status and manage devices from the terminal.",
-        bestFor: "Projects that reach servers or services over Tailscale.",
         signals: [hint("tailscaled service"), hint("tailscale install step in a Dockerfile or CI workflow")],
         sources: [
           { kind: "docs", title: "Tailscale CLI reference", url: "https://tailscale.com/docs/reference/tailscale-cli" },
@@ -960,8 +824,6 @@ const regions: Region[] = [
         id: "docker",
         name: "Docker",
         role: "Containers",
-        summary: "Build images and run services with Compose.",
-        bestFor: "Running databases locally and shipping to container hosts.",
         signals: [file("Dockerfile"), file("compose.yaml"), file("docker-compose.yml")],
         sources: [
           { kind: "llms", title: "Docker docs llms.txt", url: "https://docs.docker.com/llms.txt" },
@@ -972,8 +834,6 @@ const regions: Region[] = [
         id: "turborepo",
         name: "Turborepo",
         role: "Monorepo",
-        summary: "Task runner and build cache for JavaScript monorepos.",
-        bestFor: "Monorepos with a few apps and shared packages.",
         signals: [file("turbo.json"), dep("turbo")],
         sources: [
           { kind: "llms", title: "Turborepo llms.txt", url: "https://turborepo.com/llms.txt" },
@@ -984,8 +844,6 @@ const regions: Region[] = [
         id: "nx",
         name: "Nx",
         role: "Monorepo",
-        summary: "Monorepo platform with task graph, caching and CI.",
-        bestFor: "Large monorepos with many projects or languages.",
         signals: [file("nx.json"), file("**/project.json")],
         sources: [
           { kind: "llms", title: "Nx llms.txt", url: "https://nx.dev/llms.txt" },
@@ -996,8 +854,6 @@ const regions: Region[] = [
         id: "pnpm",
         name: "pnpm",
         role: "Package manager",
-        summary: "Fast package manager with strict workspaces.",
-        bestFor: "Monorepos and any project that wants a strict dependency tree.",
         signals: [file("pnpm-lock.yaml"), file("pnpm-workspace.yaml")],
         sources: [
           { kind: "docs", title: "pnpm workspaces", url: "https://pnpm.io/workspaces" },
@@ -1009,8 +865,6 @@ const regions: Region[] = [
         id: "bun",
         name: "Bun",
         role: "Runtime",
-        summary: "JavaScript runtime, package manager and test runner.",
-        bestFor: "Fast installs and scripts, TypeScript without a build step.",
         signals: [file("bun.lock"), file("bun.lockb"), file("bunfig.toml")],
         sources: [
           { kind: "llms", title: "Bun llms.txt", url: "https://bun.com/llms.txt" },
@@ -1021,8 +875,6 @@ const regions: Region[] = [
         id: "vitest",
         name: "Vitest",
         role: "Testing",
-        summary: "Vite-native test runner.",
-        bestFor: "Unit and component tests in Vite-based projects.",
         signals: [file("vitest.config.ts"), dep("vitest")],
         sources: [
           { kind: "llms", title: "Vitest llms.txt", url: "https://vitest.dev/llms.txt" },
@@ -1033,8 +885,6 @@ const regions: Region[] = [
         id: "playwright",
         name: "Playwright",
         role: "Testing",
-        summary: "End-to-end browser testing.",
-        bestFor: "Testing real user flows in real browsers.",
         signals: [file("playwright.config.ts"), dep("@playwright/test")],
         sources: [
           { kind: "docs", title: "Playwright CLI", url: "https://playwright.dev/docs/test-cli" },

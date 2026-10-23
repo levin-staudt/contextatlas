@@ -26,13 +26,13 @@ export function createMcpServer(db: Db, snapshot: Snapshot) {
     {
       title: "Search the catalog",
       description:
-        "Full-text search over tools (topics) and their sources. Matches names, roles, summaries, detection signals (files, dependencies, env vars), source titles and URLs. Every word must match, as a prefix.",
+        "Full-text search over tools (topics) and their sources. Matches names, roles, regions, detection signals (files, dependencies, env vars), source titles and URLs. Every word must match, as a prefix.",
       inputSchema: {
         query: z
           .string()
           .min(1)
           .max(200)
-          .describe('Words to search for, e.g. "postgres", "vercel mcp" or "turbo.json"'),
+          .describe('Words to search for, e.g. "database", "vercel mcp" or "turbo.json"'),
         kind: z.enum(sourceKinds).optional().describe("Only return sources of this kind"),
         limit: z.number().int().min(1).max(50).optional().describe("Maximum number of topics, default 10"),
       },
@@ -64,7 +64,7 @@ export function createMcpServer(db: Db, snapshot: Snapshot) {
     {
       title: "List topics",
       description:
-        "Every tool in the catalog with its id, region, role and best-for line, without sources. Use it to propose a stack, then get_topic for the chosen tools.",
+        "Every tool in the catalog with its id, name, role and region, without sources. Use it to find candidates per role, then get_topic and their llms.txt sources to compare them.",
       inputSchema: {
         region: z.string().optional().describe("Only this region id, e.g. cloud, frameworks, standards or clis"),
       },
@@ -75,7 +75,7 @@ export function createMcpServer(db: Db, snapshot: Snapshot) {
         updatedAt: snapshot.updatedAt,
         topics: snapshot.topics
           .filter((topic) => !region || topic.region.id === region)
-          .map(({ id, name, role, bestFor, region }) => ({ id, name, role, bestFor, region: region.id })),
+          .map(({ id, name, role, region: { id: regionId } }) => ({ id, name, role, region: regionId })),
       }),
   );
 
