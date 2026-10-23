@@ -121,8 +121,9 @@ export function AnimatedGlobe({ className }: { className?: string }) {
     const ctx = el?.getContext("2d");
     if (!el || !ctx) return;
 
-    const land = landVectors();
-    const rings = graticule();
+    // Built on the first frame: phones hide the globe, so they never pay for it.
+    let land: Vec[] | null = null;
+    let rings: Vec[][] | null = null;
     const motion = matchMedia("(prefers-reduced-motion: reduce)");
     let still = motion.matches;
     let colors = readColors();
@@ -140,6 +141,8 @@ export function AnimatedGlobe({ className }: { className?: string }) {
 
     function draw(now: number) {
       if (!ctx || !size) return;
+      land ??= landVectors();
+      rings ??= graticule();
       const r = (size * 200) / 420;
       const c = size / 2;
       const yaw = still ? -20 * deg : -20 * deg + (now - born) * spin;

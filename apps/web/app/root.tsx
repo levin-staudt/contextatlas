@@ -1,5 +1,5 @@
 import serifFont from "@fontsource-variable/alegreya/files/alegreya-latin-wght-normal.woff2?url";
-import { type ReactNode, ViewTransition } from "react";
+import { type ReactNode, useState, ViewTransition } from "react";
 import {
   isRouteErrorResponse,
   Link,
@@ -99,8 +99,13 @@ export function Layout({ children }: { children: ReactNode }) {
 }
 
 export default function App() {
+  // Only page changes cross-fade. Before the first navigation the only transition is hydration, and
+  // animating it would snapshot the whole page right when it becomes interactive.
+  const navigating = useNavigation().state !== "idle";
+  const [animate, setAnimate] = useState(false);
+  if (navigating && !animate) setAnimate(true);
   return (
-    <ViewTransition>
+    <ViewTransition default={animate ? "auto" : "none"}>
       <div id="main">
         <Outlet />
       </div>

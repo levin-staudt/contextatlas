@@ -327,14 +327,7 @@ function SourceBrowser({ data }: { data: Data }) {
         )}
 
         {regions.map((region) => (
-          // Off-screen regions skip style, layout and paint until they scroll near (content-visibility):
-          // on a mid-range phone this cuts the main-thread work of the first load by about two thirds,
-          // since every font swap lays the page out again. Find-in-page and anchors still reach them.
-          <section
-            key={region.id}
-            id={region.id}
-            className="scroll-mt-6 pt-10 [contain-intrinsic-size:auto_2400px] [content-visibility:auto] first-of-type:pt-6"
-          >
+          <section key={region.id} id={region.id} className="scroll-mt-6 pt-10 first-of-type:pt-6">
             <h2 className="text-[2rem] font-bold leading-tight sm:text-4xl">{region.name}</h2>
             <p className="mt-1 text-lg italic text-ink-soft">{region.description}</p>
             <div className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-x-10 gap-y-8 md:grid-cols-2">
@@ -352,7 +345,17 @@ function SourceBrowser({ data }: { data: Data }) {
 function TopicCard({ topic, kinds }: { topic: Regions[number]["topics"][number]; kinds: Data["kinds"] }) {
   const label = (kind: SourceKind) => kinds.find((k) => k.id === kind)?.label ?? kind;
   return (
-    <article id={topic.id} data-topic className="scroll-mt-6 border-t-2 border-ink pt-3 target:border-sea">
+    // Off-screen cards skip style, layout and paint until they scroll near (content-visibility): on a
+    // mid-range phone this cuts the main-thread work of the first load by more than half, since every
+    // font that arrives lays the page out again. Find-in-page and anchors still reach them. The size
+    // stands in until a card is first drawn; it is a little taller than the card at any width, so the
+    // links of a skipped card never reach into the next one.
+    <article
+      id={topic.id}
+      data-topic
+      className="scroll-mt-6 border-t-2 border-ink pt-3 [content-visibility:auto] target:border-sea"
+      style={{ containIntrinsicSize: `auto ${130 + 60 * topic.sources.length}px` }}
+    >
       <div className="flex flex-wrap items-baseline justify-between gap-x-3">
         <h3 className="text-2xl font-bold">
           <Link to={`/topics/${topic.id}`} prefetch="intent" className="no-underline hover:underline">
