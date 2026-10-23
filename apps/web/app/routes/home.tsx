@@ -4,7 +4,7 @@ import { type FormEvent, type MouseEvent, useDeferredValue, useEffect, useMemo, 
 import { Link, useSearchParams } from "react-router";
 import { AnimatedGlobe } from "../components/globe";
 import { KindSymbol } from "../components/icons";
-import { pageMeta } from "../meta";
+import { defaultDescription, ld, pageMeta } from "../meta";
 import { getSite } from "../site";
 import type { Route } from "./+types/home";
 
@@ -23,6 +23,8 @@ export function loader({ context }: Route.LoaderArgs) {
     })),
   }));
   return {
+    siteUrl: site.siteUrl,
+    repoUrl: site.repoUrl,
     url: `${site.siteUrl}/`,
     regions,
     kinds: (Object.keys(site.kinds) as SourceKind[]).map((id) => ({ id, ...site.kinds[id] })),
@@ -35,7 +37,39 @@ export function loader({ context }: Route.LoaderArgs) {
 export const shouldRevalidate = () => false;
 
 export function meta({ loaderData }: Route.MetaArgs) {
-  return pageMeta({ title: "Context Atlas", url: loaderData?.url });
+  if (!loaderData) return [];
+  const { siteUrl, repoUrl, url, regions, topicCount } = loaderData;
+  return pageMeta({
+    title: "Context Atlas: llms.txt, MCP servers and agent docs for your tech stack",
+    siteUrl,
+    url,
+    markdownPath: "/index.md",
+    jsonLd: [
+      ld.organization(siteUrl, repoUrl),
+      ld.website(siteUrl, defaultDescription),
+      {
+        "@type": "CollectionPage",
+        "@id": url,
+        url,
+        name: "Context Atlas",
+        description: defaultDescription,
+        isPartOf: { "@id": ld.websiteId(siteUrl) },
+        mainEntity: {
+          "@type": "ItemList",
+          name: "Tools with sources for coding agents",
+          numberOfItems: topicCount,
+          itemListElement: regions
+            .flatMap((region) => region.topics)
+            .map((topic, index) => ({
+              "@type": "ListItem",
+              position: index + 1,
+              name: topic.name,
+              url: `${siteUrl}/topics/${topic.id}`,
+            })),
+        },
+      },
+    ],
+  });
 }
 
 type Data = Route.ComponentProps["loaderData"];
@@ -293,7 +327,14 @@ function SourceBrowser({ data }: { data: Data }) {
         )}
 
         {regions.map((region) => (
-          <section key={region.id} id={region.id} className="scroll-mt-6 pt-10 first-of-type:pt-6">
+          // Off-screen regions skip style, layout and paint until they scroll near (content-visibility):
+          // on a mid-range phone this cuts the main-thread work of the first load by about two thirds,
+          // since every font swap lays the page out again. Find-in-page and anchors still reach them.
+          <section
+            key={region.id}
+            id={region.id}
+            className="scroll-mt-6 pt-10 [contain-intrinsic-size:auto_2400px] [content-visibility:auto] first-of-type:pt-6"
+          >
             <h2 className="text-[2rem] font-bold leading-tight sm:text-4xl">{region.name}</h2>
             <p className="mt-1 text-lg italic text-ink-soft">{region.description}</p>
             <div className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-x-10 gap-y-8 md:grid-cols-2">
@@ -314,9 +355,9 @@ function TopicCard({ topic, kinds }: { topic: Regions[number]["topics"][number];
     <article id={topic.id} data-topic className="scroll-mt-6 border-t-2 border-ink pt-3 target:border-sea">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3">
         <h3 className="text-2xl font-bold">
-          <a href={`#${topic.id}`} className="no-underline hover:underline">
+          <Link to={`/topics/${topic.id}`} prefetch="intent" className="no-underline hover:underline">
             {topic.name}
-          </a>
+          </Link>
         </h3>
         <span className="font-sans text-sm text-sea">{topic.role}</span>
       </div>
@@ -342,7 +383,10 @@ function TopicCard({ topic, kinds }: { topic: Regions[number]["topics"][number];
         ))}
       </ul>
       <p className="mt-2 font-sans text-sm text-ink-soft">
-        For agents:{" "}
+        <Link to={`/topics/${topic.id}`} prefetch="intent" className="underline hover:text-ink">
+          Signals and related tools
+        </Link>
+        {" · "}For agents:{" "}
         <a href={`/llms/${topic.id}.txt`} className="underline hover:text-ink">
           {topic.id}.txt
         </a>

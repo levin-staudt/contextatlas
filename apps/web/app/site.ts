@@ -1,4 +1,4 @@
-import type { Catalog, DocPage, SourceKind } from "@contextatlas/core";
+import type { Catalog, DocPage, SourceKind, TopicWithRegion } from "@contextatlas/core";
 import { createContext, type RouterContextProvider } from "react-router";
 
 export type { DocPage };
@@ -26,6 +26,11 @@ export type SiteData = {
     sections: { name: string; pages: DocLink[] }[];
     neighbors: (slug: string) => { previous?: DocLink; next?: DocLink };
   };
+  topics: {
+    get: (id: string) => TopicWithRegion | undefined;
+    /** Alternatives with a similar role first, then others from the same region. */
+    related: (id: string) => TopicWithRegion[];
+  };
   /** How many tools (topics) and sources the catalog has, for the page copy. */
   counts: { topics: number; sources: number };
   /** The one-sentence prompts on /agent. */
@@ -34,6 +39,7 @@ export type SiteData = {
   repoUrl: string;
   llmsUrl: string;
   mcpUrl: string;
+  openApiUrl: string;
 };
 
 /** Set by apps/server for every request; it takes this object from the build (entry.server.tsx). */

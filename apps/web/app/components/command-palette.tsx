@@ -126,7 +126,7 @@ export function CommandPalette({ topics, docs }: Props) {
               key={topic.id}
               value={`${topic.name} ${topic.id}`}
               keywords={[topic.role, topic.region]}
-              onSelect={() => go(`/#${topic.id}`)}
+              onSelect={() => go(`/topics/${topic.id}`)}
               className={item}
             >
               <span className="font-medium">{topic.name}</span>

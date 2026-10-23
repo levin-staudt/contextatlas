@@ -3,7 +3,7 @@ import { data, Link, NavLink, useLocation } from "react-router";
 import { useCopy } from "../components/copy";
 import { DocContent } from "../components/doc-content";
 import { CopyIcon, MenuIcon } from "../components/icons";
-import { pageMeta } from "../meta";
+import { ld, pageMeta } from "../meta";
 import { type DocHeading, getSite } from "../site";
 import type { Route } from "./+types/docs";
 
@@ -26,6 +26,8 @@ export function loader({ params, context, url }: Route.LoaderArgs) {
       updatedAt: page.updatedAt,
       isHome: page.slug === "index",
     },
+    siteUrl: site.siteUrl,
+    repoUrl: site.repoUrl,
     url: `${site.siteUrl}${page.path}`,
     editUrl: `${site.repoUrl}/blob/main/packages/core/docs/${page.slug}.mdx`,
     html: content.html,
@@ -38,13 +40,42 @@ export function loader({ params, context, url }: Route.LoaderArgs) {
 
 export function meta({ loaderData }: Route.MetaArgs) {
   if (!loaderData) return [];
-  const { page, url } = loaderData;
+  const { page, url, siteUrl, repoUrl } = loaderData;
+  const title = page.isHome ? "Docs · Context Atlas" : `${page.title} · Context Atlas docs`;
+  const docsUrl = `${siteUrl}/docs`;
   return pageMeta({
-    title: page.isHome ? "Docs · Context Atlas" : `${page.title} · Context Atlas docs`,
+    title,
     description: page.description,
+    siteUrl,
     url,
     markdownPath: page.markdownPath,
     ogType: "article",
+    jsonLd: [
+      ld.organization(siteUrl, repoUrl),
+      {
+        "@type": "TechArticle",
+        "@id": url,
+        url,
+        headline: page.title,
+        description: page.description,
+        articleSection: page.section,
+        dateModified: page.updatedAt,
+        inLanguage: "en",
+        isPartOf: { "@id": ld.websiteId(siteUrl) },
+        author: { "@id": ld.organizationId(siteUrl) },
+        publisher: { "@id": ld.organizationId(siteUrl) },
+        encoding: {
+          "@type": "MediaObject",
+          encodingFormat: "text/markdown",
+          contentUrl: `${siteUrl}${page.markdownPath}`,
+        },
+      },
+      ld.breadcrumbs([
+        { name: "Context Atlas", url: `${siteUrl}/` },
+        { name: "Docs", url: docsUrl },
+        ...(page.isHome ? [] : [{ name: page.title, url }]),
+      ]),
+    ],
   });
 }
 

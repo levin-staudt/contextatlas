@@ -75,9 +75,17 @@ Invalid parameters return 400 with an `error` message that names the parameter.
 
 Responses carry `Cache-Control` headers: topics for an hour in the browser and a day at the CDN, search results for five minutes. The catalog changes only with a deploy, so there is no need to poll.
 
+## OpenAPI
+
+[/openapi.json](/openapi.json) describes every endpoint as OpenAPI 3.1, with an `operationId`, parameters and response schemas, so function-calling clients and code generators can use the API without reading this page.
+
+```bash
+curl -s https://contextatlas.dev/openapi.json
+```
+
 ## Other formats
 
-- [/atlas.json](/atlas.json): the whole catalog in one file, grouped by region, with each topic's `llmsTxt` URL
+- [/atlas.json](/atlas.json): the whole catalog in one file, grouped by region, with each topic's `llmsTxt` URL and `page` URL
 - [/llms.txt](/llms.txt) and `/llms/<id>.txt`: the same data as Markdown for agents
 
 ## Typed client

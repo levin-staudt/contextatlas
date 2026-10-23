@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { CopyButton } from "../components/copy";
-import { pageMeta } from "../meta";
+import { ld, pageMeta } from "../meta";
 import { getSite } from "../site";
 import type { Route } from "./+types/agent";
 
 export function loader({ context }: Route.LoaderArgs) {
   const site = getSite(context);
   return {
+    siteUrl: site.siteUrl,
+    repoUrl: site.repoUrl,
     url: `${site.siteUrl}/agent`,
     prompts: site.prompts,
     llmsUrl: site.llmsUrl,
@@ -20,10 +22,32 @@ export function loader({ context }: Route.LoaderArgs) {
 export const shouldRevalidate = () => false;
 
 export function meta({ loaderData }: Route.MetaArgs) {
+  if (!loaderData) return [];
+  const { siteUrl, repoUrl, url } = loaderData;
+  const title = "Agent prompt · Context Atlas";
+  const description =
+    "One sentence for Claude Code, Codex or Cursor that hands your agent the right llms.txt, docs and MCP servers for your stack.";
   return pageMeta({
-    title: "Agent prompt · Context Atlas",
-    description: "A short prompt that points your coding agent to the Context Atlas llms.txt.",
-    url: loaderData?.url,
+    title,
+    description,
+    siteUrl,
+    url,
+    markdownPath: "/agent.md",
+    jsonLd: [
+      ld.organization(siteUrl, repoUrl),
+      {
+        "@type": "WebPage",
+        "@id": url,
+        url,
+        name: title,
+        description,
+        isPartOf: { "@id": ld.websiteId(siteUrl) },
+      },
+      ld.breadcrumbs([
+        { name: "Context Atlas", url: `${siteUrl}/` },
+        { name: "Agent prompt", url },
+      ]),
+    ],
   });
 }
 

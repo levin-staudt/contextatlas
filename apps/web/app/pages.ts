@@ -6,6 +6,8 @@
 export const pageRoutes = [
   { path: "/", file: "routes/home.tsx" },
   { path: "/agent", file: "routes/agent.tsx" },
+  // One page per tool, /topics/<id>; its Markdown copy is /topics/<id>.md.
+  { path: "/topics/:id", file: "routes/topic.tsx" },
   // /docs is the docs home (index.mdx), /docs/<slug> every other page.
   { path: "/docs/:slug?", file: "routes/docs.tsx" },
 ] as const;

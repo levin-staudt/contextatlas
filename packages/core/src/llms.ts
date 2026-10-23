@@ -1,7 +1,7 @@
 import { kinds } from "./catalog";
 import { buildDocMarkdown, type DocPage, mapOutsideCode } from "./docs";
 import { formatSignal } from "./format";
-import { llmsUrl, mcpUrl, siteUrl } from "./site";
+import { llmsUrl, mcpUrl, openApiUrl, siteUrl, topicPageUrl } from "./site";
 import type { Catalog, Topic } from "./types";
 
 function topicBlock(topic: Topic) {
@@ -34,6 +34,60 @@ ${topicBlock(topic)}
 `;
 }
 
+/** A topic's page as Markdown (/topics/<id>.md): its llms.txt plus links to related topics. */
+export function buildTopicMarkdown(topic: Topic, updatedAt: string, related: Topic[]) {
+  const links = related.map((other) => `- [${other.name}](${topicPageUrl(other.id)}): ${other.role}`);
+  const relatedText = links.length ? `\nRelated topics:\n\n${links.join("\n")}\n` : "";
+  return `${buildTopicTxt(topic, updatedAt)}${relatedText}`;
+}
+
+/** The /agent page as Markdown. */
+export function buildAgentMarkdown() {
+  return `# Agent prompt · Context Atlas
+
+> One sentence that hands the Context Atlas catalog to any coding agent. It points to ${llmsUrl}, which holds the instructions and every source.
+
+## Existing project
+
+Run it inside the repository. The agent detects the stack and reads the sources for it.
+
+\`\`\`text
+${agentPrompts.existing}
+\`\`\`
+
+## New project
+
+Replace the last line with what you want to build. The agent proposes a stack and sets it up once you agree.
+
+\`\`\`text
+${agentPrompts.new("")}
+\`\`\`
+
+## MCP server
+
+Agents with MCP support can search the catalog directly (Streamable HTTP, no auth), with the tools \`search\`, \`get_topic\` and \`list_topics\`:
+
+\`\`\`sh
+claude mcp add --transport http contextatlas ${mcpUrl}
+\`\`\`
+
+Other clients: ${siteUrl}/docs/mcp.md
+`;
+}
+
+/** The body of a 404 for agents that asked for Markdown. */
+export function buildNotFoundMarkdown(path: string) {
+  return `# Not found
+
+There is nothing at \`${path}\` on Context Atlas.
+
+- Whole catalog and instructions for agents: ${llmsUrl}
+- Every page and file: ${siteUrl}/sitemap.xml
+- Docs: ${siteUrl}/docs/index.md
+- MCP server: ${mcpUrl}
+`;
+}
+
 function docsList(docs: DocPage[]) {
   if (!docs.length) return "";
   const links = docs.map((page) => `- [${page.title}](${siteUrl}${page.markdownPath}): ${page.description}`);
@@ -45,12 +99,13 @@ export function buildLlmsTxt(catalog: Catalog, docs: DocPage[] = []) {
 
 > A catalog of the sources vendors publish for coding agents: llms.txt indexes, docs, MCP servers, agent skills, rule files and CLIs. Use it to choose a tech stack, or to load the right sources for the stack a project already uses.
 
-Last updated: ${catalog.updatedAt}. The same data as JSON: ${siteUrl}/atlas.json. Each topic also has its own small file at ${siteUrl}/llms/<id>.txt, for example ${siteUrl}/llms/vercel.txt.
+Last updated: ${catalog.updatedAt}. The same data as JSON: ${siteUrl}/atlas.json. Each topic also has its own small file at ${siteUrl}/llms/<id>.txt, for example ${siteUrl}/llms/vercel.txt, and a page at ${siteUrl}/topics/<id>.
 
 Other ways to query the catalog:
 
 - MCP server (Streamable HTTP, no auth): ${mcpUrl}, with the tools \`search\`, \`get_topic\` and \`list_topics\`. Add it with \`claude mcp add --transport http contextatlas ${mcpUrl}\`.
-- JSON API: ${siteUrl}/api/search?q=<words> (full-text search, optional \`kind\` and \`limit\`), ${siteUrl}/api/topics and ${siteUrl}/api/topics/<id>.
+- JSON API: ${siteUrl}/api/search?q=<words> (full-text search, optional \`kind\` and \`limit\`), ${siteUrl}/api/topics and ${siteUrl}/api/topics/<id>. OpenAPI spec: ${openApiUrl}.
+- Every page as Markdown: request it with \`Accept: text/markdown\`, or add \`.md\` to the path (${siteUrl}/agent.md, ${siteUrl}/topics/vercel.md, ${siteUrl}/docs/mcp.md).
 ${docsList(docs)}
 ## Instructions for agents
 
