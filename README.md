@@ -21,20 +21,21 @@ Everything the site serves is read from SQLite, which `bun run seed` (and every 
 
 ## Develop
 
-[Bun](https://bun.com) workspaces, [Hono](https://hono.dev) with server-rendered JSX, SQLite through [Drizzle](https://orm.drizzle.team) with FTS5 search, the MCP TypeScript SDK and Tailwind CSS.
+[Bun](https://bun.com) workspaces, [Hono](https://hono.dev) in front for the agent files, the API and MCP, [React Router](https://reactrouter.com) (framework mode, server-rendered, Vite) for the pages, SQLite through [Drizzle](https://orm.drizzle.team) with FTS5 search, the MCP TypeScript SDK and Tailwind CSS.
 
 ```bash
 bun install
-bun dev          # http://localhost:3000, rebuilds on change
+bun dev          # http://localhost:3000, hot reload for the pages, restart on server changes
 bun run check    # lint, typecheck, tests: run before every commit
-bun run build    # dist/: single binary + public/ + drizzle/
+bun run build    # dist/: single binary (server + pages) + public/ + drizzle/
 bun run deploy   # deploy main to the VPS through GitHub Actions
 ```
 
 | Path | What |
 |---|---|
 | `packages/core` | Catalog, database schema and migrations, seed, queries, search, llms.txt text. Transport-free. |
-| `apps/server` | Hono app: pages, agent files, JSON API, MCP. `src/main.ts` is the binary (`seed`, `serve`). |
+| `apps/server` | Hono app: agent files, JSON API, MCP, static files; hands every other path to `apps/web`. `src/main.ts` is the binary (`seed`, `serve`), `src/dev.ts` the dev server. |
+| `apps/web` | The pages for people: React Router routes, components and styles. Reads the catalog from the server's snapshot, no data logic. See [`docs/web-frontend.md`](docs/web-frontend.md). |
 | `apps/redirect` | Cloudflare Worker that 301s the old workers.dev URL to the new domain. |
 | `deploy/` | systemd unit and VPS scripts. |
 | `scripts/` | Cloudflare setup and VPS access from the harness. |

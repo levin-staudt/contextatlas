@@ -1,4 +1,4 @@
-import { buildDocMarkdown, buildTopicTxt, type Db, getUpdatedAt, isCompiled, siteUrl } from "@contextatlas/core";
+import { buildDocMarkdown, buildTopicTxt, type Db, getUpdatedAt, siteUrl } from "@contextatlas/core";
 import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
 import { cors } from "hono/cors";
@@ -7,21 +7,27 @@ import { createApi } from "./api";
 import { publicDir } from "./assets";
 import { agentCacheControl, noStore, pageCacheControl } from "./cache";
 import { handleMcpRequest } from "./mcp";
-import { AgentPage } from "./pages/agent";
-import { DocsPage } from "./pages/docs";
-import { HomePage } from "./pages/home";
-import { NotFoundPage } from "./pages/not-found";
 import { loadSnapshot } from "./snapshot";
+import { createWebHandler, type WebBuild } from "./web";
 
 const text = { "content-type": "text/plain; charset=utf-8" };
 const markdown = { "content-type": "text/markdown; charset=utf-8" };
 
+type Options = {
+  log?: boolean;
+  /** The pages for people (apps/web). Without it every page path is a plain 404, which API tests use. */
+  web?: WebBuild;
+  mode?: "production" | "development";
+};
+
 /**
- * The whole site: pages, agent files, JSON API and MCP. A thin shell around packages/core that only
- * reads from the database. Tests call `createApp(db).request(...)` without starting a server.
+ * The whole site: agent files, JSON API and MCP answered here, everything else handed to the React
+ * Router pages of apps/web. A thin shell around packages/core that only reads from the database.
+ * Tests call `createApp(db, { web }).request(...)` without starting a server.
  */
-export function createApp(db: Db, { log = false } = {}) {
+export function createApp(db: Db, { log = false, web, mode = "production" }: Options = {}) {
   const snapshot = loadSnapshot(db);
+  const renderPage = web && createWebHandler(web, snapshot.site, mode);
   const app = new Hono();
   if (log) app.use(logger());
 
@@ -32,39 +38,17 @@ export function createApp(db: Db, { log = false } = {}) {
   // Chained so AppType carries the API routes for the typed CLI client (`hc<AppType>`).
   const routes = app.route("/api", createApi(db, snapshot));
 
-  app.get("/", (c) => {
-    c.header("cache-control", pageCacheControl);
-    return c.html(HomePage({ catalog: snapshot.catalog }));
-  });
+  app.all("/api/*", (c) => c.json({ error: "Not found" }, 404, { "cache-control": noStore }));
 
-  app.get("/agent", (c) => {
-    c.header("cache-control", pageCacheControl);
-    return c.html(AgentPage({ catalog: snapshot.catalog }));
-  });
-
-  // Every docs page is HTML at /docs/<slug> and Markdown at /docs/<slug>.md; the docs home is /docs.
-  app.get("/docs", (c) => {
-    const page = snapshot.docs.page("index");
-    if (!page) return c.notFound();
-    c.header("cache-control", pageCacheControl);
-    return c.html(DocsPage({ docs: snapshot.docs, page }));
-  });
-
-  app.get("/docs/:file", (c) => {
-    const file = c.req.param("file");
-    if (file.endsWith(".md")) {
-      const page = snapshot.docs.page(file.slice(0, -".md".length));
-      if (!page) return c.body("Not found\n", 404, { ...text, "cache-control": noStore });
-      return c.body(buildDocMarkdown(page), 200, {
-        ...markdown,
-        "cache-control": agentCacheControl,
-        link: `<${siteUrl}${page.path}>; rel="canonical"`,
-      });
-    }
-    const page = snapshot.docs.page(file);
-    if (!page || page.slug === "index") return c.notFound();
-    c.header("cache-control", pageCacheControl);
-    return c.html(DocsPage({ docs: snapshot.docs, page }));
+  // Every docs page is Markdown at /docs/<slug>.md for agents; the HTML page is rendered by apps/web.
+  app.get("/docs/:file{.+\\.md}", (c) => {
+    const page = snapshot.docs.page(c.req.param("file").slice(0, -".md".length));
+    if (!page) return c.body("Not found\n", 404, { ...text, "cache-control": noStore });
+    return c.body(buildDocMarkdown(page), 200, {
+      ...markdown,
+      "cache-control": agentCacheControl,
+      link: `<${siteUrl}${page.path}>; rel="canonical"`,
+    });
   });
 
   app.get("/llms.txt", (c) => c.body(snapshot.llmsTxt, 200, { ...text, "cache-control": agentCacheControl }));
@@ -129,17 +113,26 @@ export function createApp(db: Db, { log = false } = {}) {
     serveStatic({
       root: publicDir,
       onFound: (_path, c) => {
-        // Versioned URLs (see assetUrl) never change; in development nothing is versioned or cached.
-        if (c.req.query("v")) c.header("cache-control", "public, max-age=31536000, immutable");
-        else c.header("cache-control", isCompiled ? "public, max-age=3600" : "no-cache");
+        // Vite puts a content hash in every file name under /assets/, so those never change.
+        c.header(
+          "cache-control",
+          c.req.path.startsWith("/assets/") ? "public, max-age=31536000, immutable" : "public, max-age=3600",
+        );
       },
     }),
   );
 
-  app.notFound((c) => {
-    c.header("cache-control", noStore);
-    if (c.req.path.startsWith("/api/")) return c.json({ error: "Not found" }, 404);
-    return c.html(NotFoundPage({ path: c.req.path }), 404);
+  // Pages, and the `.data` requests the pages make on client-side navigation.
+  app.all("*", async (c) => {
+    // The pages have no actions; anything but GET and HEAD is refused here instead of erroring in React Router.
+    if (c.req.method !== "GET" && c.req.method !== "HEAD") {
+      return c.body("Method not allowed\n", 405, { ...text, allow: "GET, HEAD", "cache-control": noStore });
+    }
+    if (!renderPage) return c.body("Not found\n", 404, { ...text, "cache-control": noStore });
+    const res = await renderPage(c.req.raw);
+    const response = new Response(res.body, res);
+    response.headers.set("cache-control", res.status === 200 ? pageCacheControl : noStore);
+    return response;
   });
 
   return routes;

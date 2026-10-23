@@ -1,17 +1,26 @@
-import { describe, expect, test } from "bun:test";
+import { beforeAll, describe, expect, spyOn, test } from "bun:test";
 import { catalog, loadDocs, openDatabase, seedDatabase, siteUrl } from "@contextatlas/core";
 import { hc } from "hono/client";
 import { type AppType, createApp } from "../src/app";
+import { loadWebBuild } from "../src/web";
 
 const db = openDatabase(":memory:");
 seedDatabase(db);
 const app = createApp(db);
+// Only the page tests need the React Router build of apps/web; `bun run test` and `bun run check` build it first.
+let pages: Promise<AppType> | undefined;
+const pageApp = () => (pages ??= loadWebBuild().then((web) => createApp(db, { web })));
 const topicCount = catalog.regions.reduce((sum, region) => sum + region.topics.length, 0);
 const docCount = loadDocs().length;
 
 describe("pages", () => {
+  let site: AppType;
+  beforeAll(async () => {
+    site = await pageApp();
+  });
+
   test("home renders every topic with metadata", async () => {
-    const res = await app.request("/");
+    const res = await site.request("/");
     expect(res.status).toBe(200);
     expect(res.headers.get("cache-control")).toContain("s-maxage=86400");
     const html = await res.text();
@@ -19,45 +28,99 @@ describe("pages", () => {
     expect(html).toContain('<meta name="description"');
     expect(html).toContain('<link rel="alternate" type="text/plain" href="/llms.txt"/>');
     expect(html).toContain('<link rel="alternate" type="application/json" href="/atlas.json"/>');
-    expect(html.match(/<article data-topic/g)?.length).toBe(topicCount);
+    expect(html.match(/<article id="[^"]+" data-topic/g)?.length).toBe(topicCount);
+  });
+
+  test("client navigations load route data without a full page", async () => {
+    const res = await site.request("/docs/mcp.data");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("cache-control")).toContain("s-maxage=86400");
+    expect(await res.text()).toContain("connect-a-client");
   });
 
   test("agent page shows the prompt", async () => {
-    const html = await (await app.request("/agent")).text();
+    const html = await (await site.request("/agent")).text();
     expect(html).toContain("<title>Agent prompt · Context Atlas</title>");
     expect(html).toContain(`Read ${siteUrl}/llms.txt`);
   });
 
   test("home and agent page link to the docs", async () => {
-    for (const path of ["/", "/agent"]) expect(await (await app.request(path)).text()).toContain('href="/docs"');
+    for (const path of ["/", "/agent"]) expect(await (await site.request(path)).text()).toContain('href="/docs"');
   });
 
   test("unknown paths are 404 and not cached", async () => {
-    const res = await app.request("/nope");
+    const res = await site.request("/nope");
     expect(res.status).toBe(404);
     expect(res.headers.get("cache-control")).toBe("no-store");
+    expect(await res.text()).toContain("Off the map");
+  });
+
+  test("pages answer only GET and HEAD, and HEAD has the same headers", async () => {
+    const post = await site.request("/", { method: "POST" });
+    expect(post.status).toBe(405);
+    expect(post.headers.get("allow")).toBe("GET, HEAD");
+    expect(post.headers.get("cache-control")).toBe("no-store");
+    const head = await site.request("/docs/mcp", { method: "HEAD" });
+    expect(head.status).toBe(200);
+    expect(head.headers.get("content-type")).toBe("text/html; charset=utf-8");
+    expect(await head.text()).toBe("");
+  });
+
+  test("only hashed assets are cached for good", async () => {
+    expect((await site.request("/favicon.svg")).headers.get("cache-control")).toBe("public, max-age=3600");
+    const html = await (await site.request("/")).text();
+    const asset = html.match(/\/assets\/[^"]+\.js/)?.[0];
+    expect(asset).toBeDefined();
+    expect((await site.request(asset!)).headers.get("cache-control")).toBe("public, max-age=31536000, immutable");
+  });
+
+  test("agent routes never go through the page renderer", async () => {
+    let renders = 0;
+    const spy = createApp(db, {
+      web: async () => {
+        renders++;
+        throw new Error("page renderer called");
+      },
+    });
+    for (const path of ["/llms.txt", "/llms-full.txt", "/llms/vercel.txt", "/atlas.json", "/docs/mcp.md"]) {
+      expect((await spy.request(path)).status).toBe(200);
+    }
+    for (const path of ["/api/topics", "/sitemap.xml", "/robots.txt", "/healthz"]) await spy.request(path);
+    for (const path of ["/llms/nope.txt", "/docs/nope.md", "/api/nope"])
+      expect((await spy.request(path)).status).toBe(404);
+    expect(renders).toBe(0);
+    // The stub throws on purpose; keep React Router's error log out of the test output.
+    const quiet = spyOn(console, "error").mockImplementation(() => {});
+    await spy.request("/");
+    quiet.mockRestore();
+    expect(renders).toBe(1);
   });
 });
 
 describe("docs", () => {
+  let site: AppType;
+  beforeAll(async () => {
+    site = await pageApp();
+  });
+
   test("docs home and pages render with sidebar and metadata", async () => {
-    const home = await app.request("/docs");
+    const home = await site.request("/docs");
     expect(home.status).toBe(200);
     expect(home.headers.get("cache-control")).toContain("s-maxage=86400");
     expect(await home.text()).toContain("<title>Docs · Context Atlas</title>");
 
-    const html = await (await app.request("/docs/mcp")).text();
+    const html = await (await site.request("/docs/mcp")).text();
     expect(html).toContain("<title>MCP server · Context Atlas docs</title>");
     expect(html).toContain(`<link rel="canonical" href="${siteUrl}/docs/mcp"/>`);
     expect(html).toContain('<link rel="alternate" type="text/markdown" href="/docs/mcp.md"/>');
     expect(html).toContain('<meta property="og:type" content="article"/>');
-    expect(html).toContain('<a href="/docs/mcp" aria-current="page"');
+    expect(html).toMatch(/<a aria-current="page"[^>]* href="\/docs\/mcp"/);
     expect(html).toContain('<h2 id="connect-a-client">');
     expect(html).toContain(`claude mcp add --transport http contextatlas ${siteUrl}/mcp`);
   });
 
   test("every page as Markdown", async () => {
-    const res = await app.request("/docs/mcp.md");
+    const res = await site.request("/docs/mcp.md");
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toStartWith("text/markdown");
     expect(res.headers.get("access-control-allow-origin")).toBe("*");
@@ -65,16 +128,16 @@ describe("docs", () => {
     const body = await res.text();
     expect(body).toStartWith("# MCP server\n\n> ");
     expect(body).toContain(`](${siteUrl}/docs/mcp#clients-with-stdio-only)`);
-    expect((await app.request("/docs/index.md")).status).toBe(200);
+    expect((await site.request("/docs/index.md")).status).toBe(200);
   });
 
   test("unknown pages are 404 and not cached", async () => {
     for (const path of ["/docs/nope", "/docs/index", "/docs/nope.md"]) {
-      const res = await app.request(path);
+      const res = await site.request(path);
       expect(res.status).toBe(404);
       expect(res.headers.get("cache-control")).toBe("no-store");
     }
-    expect((await app.request("/docs/nope.md")).headers.get("content-type")).toStartWith("text/plain");
+    expect((await site.request("/docs/nope.md")).headers.get("content-type")).toStartWith("text/plain");
   });
 });
 
@@ -160,6 +223,13 @@ describe("api", () => {
     const data = await res.json();
     expect(data.results.length).toBe(3);
     expect(data.results.map((result) => result.topic.id)).toContain("neon");
+  });
+
+  test("unknown API paths are a JSON 404", async () => {
+    const res = await app.request("/api/nope");
+    expect(res.status).toBe(404);
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    expect(res.headers.get("content-type")).toStartWith("application/json");
   });
 
   test("search validates input", async () => {

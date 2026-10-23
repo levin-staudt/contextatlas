@@ -1,11 +1,12 @@
 import { defaultDatabasePath, openDatabase, rebuildDatabaseFile } from "@contextatlas/core";
 import { createApp } from "./app";
+import { loadWebBuild } from "./web";
 
 /**
  * Entry point of the server binary:
  *   contextatlas seed    rebuild the database from the catalog (runs before every start, see deploy/contextatlas.service)
  *   contextatlas serve   serve the site, API and MCP from the database, read-only
- *   contextatlas dev     seed, then serve; scripts/dev-server.ts reruns it on every change, so catalog edits show up
+ * `bun dev` runs src/dev.ts instead: the same app with Vite in front of the pages, for HMR.
  * Configuration: DATABASE_PATH (default data/atlas.db in the repo root), read from the root .env in development, PORT (default 3000), HOST, SITE_URL.
  */
 const command = process.argv[2] ?? "serve";
@@ -17,8 +18,9 @@ function seed() {
   );
 }
 
-function serve() {
-  const app = createApp(openDatabase(defaultDatabasePath, { readonly: true }), { log: true });
+async function serve() {
+  const web = await loadWebBuild();
+  const app = createApp(openDatabase(defaultDatabasePath, { readonly: true }), { log: true, web });
   const server = Bun.serve({
     port: Number(process.env.PORT ?? 3000),
     hostname: process.env.HOST ?? "127.0.0.1",
@@ -28,11 +30,8 @@ function serve() {
 }
 
 if (command === "seed") seed();
-else if (command === "serve") serve();
-else if (command === "dev") {
-  seed();
-  serve();
-} else {
-  console.error(`Unknown command "${command}". Use "seed", "serve" or "dev".`);
+else if (command === "serve") await serve();
+else {
+  console.error(`Unknown command "${command}". Use "seed" or "serve".`);
   process.exit(1);
 }
