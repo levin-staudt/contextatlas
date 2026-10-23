@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bun install*)",
+      "Bash(bun run check*)",
+      "Bash(bun run fix*)",
+      "Bash(bun run build*)",
+      "Bash(bun run seed*)",
+      "Bash(bun run typecheck*)",
+      "Bash(bun run lint*)",
+      "Bash(bun test*)",
+      "Bash(bun dev*)",
+      "Bash(curl -s localhost:3000*)",
+      "Bash(curl -s http://localhost:3000*)"
+    ]
+  }
+}
