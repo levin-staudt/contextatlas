@@ -1,0 +1,29 @@
+---
+title: Docs
+description: How to use Context Atlas from a coding agent or a browser, through the MCP server, the agent prompt, the llms.txt files and the JSON API.
+section: Start
+order: 0
+updatedAt: 2026-10-23
+---
+
+Context Atlas is a catalog of the sources that vendors publish for coding agents: llms.txt indexes, docs, MCP servers, agent skills, rule files and CLIs. It exists so that a project can be built and run entirely from inside an agent harness such as Claude Code, Codex or Cursor, without a person opening dashboards or vendor consoles.
+
+The catalog itself is small. Its value is that your agent finds the right, current, vendor-maintained sources for a stack instead of relying on what it remembers from training.
+
+## Three ways in
+
+| You want to… | Use | Start here |
+| --- | --- | --- |
+| Let an agent search the catalog with tools | The MCP server at `https://contextatlas.dev/mcp` | [MCP server](/docs/mcp) |
+| Point an agent at the catalog with one sentence | The prompt on [/agent](/agent) | [Give it to your agent](/docs/agents) |
+| Read the catalog yourself or from a script | The [home page](/), [/llms.txt](/llms.txt) and the [JSON API](/docs/api) | [Site map](/docs/website) |
+
+Nothing needs an account, a key or a login.
+
+## New here?
+
+Follow the [Quickstart](/docs/quickstart). It connects the MCP server to your agent and runs a first query in about two minutes.
+
+## For agents
+
+Every page of these docs is also available as Markdown: add `.md` to the URL, for example [/docs/mcp.md](/docs/mcp.md). [/llms.txt](/llms.txt) links all of them, and [/llms-full.txt](/llms-full.txt) contains the catalog and every docs page in one file.

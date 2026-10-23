@@ -1,0 +1,36 @@
+---
+title: CLI
+description: The planned contextatlas command-line client, for searching the catalog and detecting a project's stack from the terminal.
+section: Reference
+order: 110
+updatedAt: 2026-10-23
+---
+
+> **Planned.** The CLI does not exist yet; it is tracked in [issue #13](https://github.com/levin-staudt/contextatlas/issues/13). Until then, use the [MCP server](/docs/mcp) or the [JSON API](/docs/api) with curl.
+
+`contextatlas` will bring the catalog to the terminal, for agents in clients without MCP support and for scripts.
+
+## Planned commands
+
+| Command | What it will do |
+| --- | --- |
+| `contextatlas search <query>` | Search tools and sources, like the MCP tool `search` |
+| `contextatlas topic <id>` | Show all sources of one tool |
+| `contextatlas detect` | Scan the current project for the catalog's signals (files, dependencies, also in workspace packages) and list the matching sources |
+| `contextatlas mcp` | Run the MCP server over stdio, for clients that only start local servers |
+
+Every command will take `--json`, so agents can parse the output reliably.
+
+## Until then
+
+The same answers are one curl away:
+
+```bash
+# search
+curl -s 'https://contextatlas.dev/api/search?q=postgres'
+
+# one tool
+curl -s https://contextatlas.dev/llms/drizzle.txt
+```
+
+For stdio-only clients, the [mcp-remote bridge](/docs/mcp#clients-with-stdio-only) works today.

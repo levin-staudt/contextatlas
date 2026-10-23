@@ -40,6 +40,9 @@ export function HomePage({ catalog }: { catalog: Catalog }) {
               <a href="#sources" class="rounded-full px-2 py-3 underline underline-offset-4 hover:text-sea">
                 Browse the sources
               </a>
+              <a href="/docs" class="rounded-full px-2 py-3 underline underline-offset-4 hover:text-sea">
+                Read the docs
+              </a>
             </div>
           </div>
         </section>

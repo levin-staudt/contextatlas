@@ -70,6 +70,65 @@
   }
 }
 
+/* Docs pages: Markdown rendered from packages/core/docs/*.mdx, styled here instead of per element. */
+@layer components {
+  .doc {
+    @apply text-lg leading-relaxed;
+  }
+  .doc > * + * {
+    @apply mt-5;
+  }
+  .doc h2 {
+    @apply mt-14 scroll-mt-6 border-t-2 border-ink pt-3 text-3xl font-bold leading-tight sm:text-4xl;
+  }
+  .doc h3 {
+    @apply mt-10 scroll-mt-6 text-2xl font-bold;
+  }
+  .doc h4 {
+    @apply mt-8 font-sans text-lg font-bold;
+  }
+  .doc a {
+    @apply underline underline-offset-4 hover:text-sea;
+  }
+  .doc strong {
+    @apply font-bold;
+  }
+  .doc ul {
+    @apply list-disc space-y-1.5 pl-6;
+  }
+  .doc ol {
+    @apply list-decimal space-y-1.5 pl-6;
+  }
+  .doc li > ul,
+  .doc li > ol {
+    @apply mt-1.5;
+  }
+  .doc li::marker {
+    @apply text-sea;
+  }
+  .doc blockquote {
+    @apply rounded-lg border-l-4 border-brass bg-paper-deep px-4 py-3 text-ink-soft sm:px-6;
+  }
+  .doc :not(pre) > code {
+    @apply rounded bg-paper-deep px-1.5 py-0.5 font-mono text-[0.85em] [overflow-wrap:anywhere];
+  }
+  .doc pre {
+    @apply overflow-x-auto rounded-lg border-l-4 border-sea bg-paper-deep px-4 py-4 font-mono text-sm leading-relaxed sm:px-6 sm:text-base;
+  }
+  .doc table {
+    @apply block w-full overflow-x-auto font-sans text-base;
+  }
+  .doc th {
+    @apply border-b-2 border-ink px-3 py-2 text-left font-bold;
+  }
+  .doc td {
+    @apply border-b border-contour px-3 py-2 align-top;
+  }
+  .doc hr {
+    @apply my-10 border-contour;
+  }
+}
+
 @keyframes chart-draw {
   from {
     stroke-dashoffset: 1;

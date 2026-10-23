@@ -1,0 +1,45 @@
+---
+title: Site map
+description: Every page and file on contextatlas.dev, what it is for and who it is for.
+section: The website
+order: 70
+updatedAt: 2026-10-23
+---
+
+Context Atlas has a few pages for people and several plain files for agents. Both show the same catalog.
+
+## Pages
+
+| Page | What it is |
+| --- | --- |
+| [/](/) | The atlas: every tool and source, grouped by region, with search and filters. Each tool has an anchor, such as [/#vercel](/#vercel) |
+| [/agent](/agent) | The one-sentence prompt that hands the catalog to any agent, and the MCP command |
+| [/docs](/docs) | These docs |
+
+## Files for agents
+
+| File | What it is |
+| --- | --- |
+| [/llms.txt](/llms.txt) | The whole catalog as Markdown, with instructions for agents. Start here |
+| `/llms/<id>.txt` | One tool as a small llms.txt, for example [/llms/vercel.txt](/llms/vercel.txt) |
+| [/llms-full.txt](/llms-full.txt) | llms.txt followed by every docs page, in one file |
+| [/atlas.json](/atlas.json) | The catalog as JSON, grouped by region |
+| `/docs/<page>.md` | Any docs page as Markdown, for example [/docs/mcp.md](/docs/mcp.md) |
+| `/mcp` | The [MCP server](/docs/mcp) |
+| `/api/…` | The [JSON API](/docs/api) |
+| [/sitemap.xml](/sitemap.xml) | Every URL above, with the date of the last change |
+
+All of these are public, need no key and allow requests from any origin (CORS).
+
+## How the catalog is organized
+
+- **Regions** group tools: Cloud providers (`cloud`), Frameworks (`frameworks`), Standards (`standards`) and CLIs (`clis`).
+- **Topics** are the tools themselves, such as Vercel, Next.js or Drizzle. Each has an id used in every URL and tool call.
+- **Sources** are the links a topic's vendor publishes for agents, each with a kind such as llms.txt or MCP server.
+- **Signals** are files, dependencies and environment variables that show a project uses the topic.
+
+[Reading a topic](/docs/topics) explains each of these in detail.
+
+## How fresh it is
+
+Every file carries the date of the last catalog change (`Last updated` in llms.txt, `updatedAt` in JSON and MCP answers). The catalog is maintained in the [GitHub repository](https://github.com/levin-staudt/contextatlas) and deployed on every change.

@@ -1,4 +1,4 @@
-import { type Db, search, sourceKinds, topicUrl } from "@contextatlas/core";
+import { type Db, search, siteUrl, sourceKinds, topicUrl } from "@contextatlas/core";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { z } from "zod";
@@ -16,7 +16,8 @@ export function createMcpServer(db: Db, snapshot: Snapshot) {
     { name: "contextatlas", version },
     {
       instructions:
-        "Context Atlas catalogs the sources vendors publish for coding agents (llms.txt, docs, MCP servers, skills, rules, CLIs). Use `search` to find tools by name, role or detection signal, `get_topic` for all sources of one tool, and `list_topics` to see the whole catalog. Fetch a topic's llms.txt or Rules source first; only search Full text sources, they are several megabytes.",
+        "Context Atlas catalogs the sources vendors publish for coding agents (llms.txt, docs, MCP servers, skills, rules, CLIs). Use `search` to find tools by name, role or detection signal, `get_topic` for all sources of one tool, and `list_topics` to see the whole catalog. Fetch a topic's llms.txt or Rules source first; only search Full text sources, they are several megabytes. " +
+        `Docs on using this server and the site, as Markdown: ${siteUrl}/llms-full.txt or ${siteUrl}/docs/<page>.md, listed in ${siteUrl}/llms.txt.`,
     },
   );
 

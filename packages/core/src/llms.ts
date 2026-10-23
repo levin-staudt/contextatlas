@@ -1,4 +1,5 @@
 import { kinds } from "./catalog";
+import { buildDocMarkdown, type DocPage, mapOutsideCode } from "./docs";
 import { formatSignal } from "./format";
 import { llmsUrl, mcpUrl, siteUrl } from "./site";
 import type { Catalog, Topic } from "./types";
@@ -33,7 +34,13 @@ ${topicBlock(topic)}
 `;
 }
 
-export function buildLlmsTxt(catalog: Catalog) {
+function docsList(docs: DocPage[]) {
+  if (!docs.length) return "";
+  const links = docs.map((page) => `- [${page.title}](${siteUrl}${page.markdownPath}): ${page.description}`);
+  return `\nDocs for people and agents, each page as Markdown (all of them in one file: ${siteUrl}/llms-full.txt):\n\n${links.join("\n")}\n`;
+}
+
+export function buildLlmsTxt(catalog: Catalog, docs: DocPage[] = []) {
   return `# Context Atlas
 
 > A catalog of the sources vendors publish for coding agents: llms.txt indexes, docs, MCP servers, agent skills, rule files and CLIs. Use it to choose a tech stack, or to load the right sources for the stack a project already uses.
@@ -44,7 +51,7 @@ Other ways to query the catalog:
 
 - MCP server (Streamable HTTP, no auth): ${mcpUrl}, with the tools \`search\`, \`get_topic\` and \`list_topics\`. Add it with \`claude mcp add --transport http contextatlas ${mcpUrl}\`.
 - JSON API: ${siteUrl}/api/search?q=<words> (full-text search, optional \`kind\` and \`limit\`), ${siteUrl}/api/topics and ${siteUrl}/api/topics/<id>.
-
+${docsList(docs)}
 ## Instructions for agents
 
 ### Existing project: use the right sources
@@ -69,6 +76,17 @@ Signals are file globs (relative to the repo root or a workspace package), packa
 
 ${catalogText(catalog)}
 `;
+}
+
+/** One heading level down, outside code blocks, so the pages nest under "# Docs" in llms-full.txt. */
+function demoteHeadings(markdown: string) {
+  return mapOutsideCode(markdown, (line) => (/^#{1,5} /.test(line) ? `#${line}` : line));
+}
+
+/** llms.txt followed by every docs page in full, for agents that want everything in one request. */
+export function buildLlmsFullTxt(catalog: Catalog, docs: DocPage[]) {
+  const pages = docs.map((page) => demoteHeadings(buildDocMarkdown(page)));
+  return `${buildLlmsTxt(catalog, docs)}\n# Docs\n\n${pages.join("\n")}`;
 }
 
 /** The one-sentence prompts on /agent. They only point to llms.txt, which holds the real instructions. */

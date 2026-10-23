@@ -1,0 +1,48 @@
+---
+title: Troubleshooting
+description: What to do when the MCP server does not connect, times out or returns errors.
+section: MCP server
+order: 50
+updatedAt: 2026-10-23
+---
+
+Start with the terminal check. It takes your agent and its config out of the picture:
+
+```bash
+curl -sS -m 10 https://contextatlas.dev/mcp \
+  -H 'content-type: application/json' \
+  -H 'accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+If this lists `search`, `get_topic` and `list_topics`, the server works and the problem is in the client config. If it fails, the problem is the network or the server.
+
+## The client cannot connect
+
+- **Wrong URL.** The URL is exactly `https://contextatlas.dev/mcp`: `https`, no trailing slash, no `/sse` and no `/mcp/` at the end. `https://contextatlas.dev/mcp/` returns 404.
+- **Wrong transport.** The server speaks Streamable HTTP only. In configs, use the type `http` (Claude Code, VS Code), `streamable-http` or `remote`, not `sse`. A client that only supports SSE needs the [stdio bridge](/docs/mcp#clients-with-stdio-only).
+- **Wrong config key.** Clients name the URL field differently: `url` (Claude Code, Cursor, Codex, VS Code), `httpUrl` (Gemini CLI), `serverUrl` (Windsurf). See [Connect a client](/docs/mcp#connect-a-client).
+- **Config not reloaded.** Most clients read MCP config only at startup. Start a new session or restart the client after editing it.
+- **Wrong scope.** In Claude Code, a server added without `--scope` only exists in the directory where you ran the command. Run `claude mcp list` from your project, or add it again with `--scope user`.
+
+## Error messages
+
+| You see | Meaning | Fix |
+| --- | --- | --- |
+| `405` and `Method not allowed.` | A GET request, for example from opening the URL in a browser | Expected. The server only answers POST from an MCP client |
+| `406` and `Not Acceptable` | The request did not accept both `application/json` and `text/event-stream` | Use an MCP client, or send both in the `accept` header |
+| `404` with an HTML page | Wrong path | Use `/mcp` exactly |
+| `Unknown topic "…"` | `get_topic` with an id that does not exist | Let the agent use `search` or `list_topics` to find the id |
+| `search` returns no results | Every word must match | Use fewer or shorter words, such as `postgres` instead of `postgres database hosting` |
+
+## Timeouts
+
+The tools answer from memory and usually respond in well under a second.
+
+- Check that the site is up: `curl -sS -m 10 https://contextatlas.dev/healthz` returns `{"ok":true,…}`.
+- Behind a company proxy or VPN, the client may not be allowed to reach external hosts. Try the curl check from the same machine and network as the client.
+- Sandboxed agents (for example Codex with network access disabled) cannot reach any remote MCP server. Allow network access for the session, or use the files in [Give it to your agent](/docs/agents) instead.
+
+## Still stuck
+
+Open an issue on [GitHub](https://github.com/levin-staudt/contextatlas/issues) with your client, its config (without secrets) and the output of the curl check.

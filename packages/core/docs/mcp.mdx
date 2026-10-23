@@ -1,0 +1,200 @@
+---
+title: MCP server
+description: What the Context Atlas MCP server does, and how to connect it to Claude Code, Codex, Cursor, VS Code and other clients.
+section: MCP server
+order: 20
+updatedAt: 2026-10-23
+---
+
+## What it does
+
+The [Model Context Protocol](https://modelcontextprotocol.io) (MCP) lets an agent call tools on a server. The Context Atlas MCP server gives your agent three read-only tools over the whole catalog:
+
+- `search`: find tools by name, role or detection signal, such as `postgres`, `auth` or `turbo.json`
+- `get_topic`: every source of one tool, with its role and detection signals
+- `list_topics`: the whole catalog in short form, for proposing a stack
+
+With it, an agent can work out which llms.txt, docs, MCP servers, skills and CLIs fit the project in front of it, without you pasting links. See [MCP tools](/docs/mcp-tools) for inputs and example answers.
+
+## Why use it
+
+- **Current sources instead of training data.** Vendors change APIs faster than models are retrained. The catalog points to what the vendors maintain themselves.
+- **The agent picks what it needs.** Instead of loading a large file into context, it searches and fetches only the topics of your stack.
+- **No setup cost.** No account, no key, no local install. The server is stateless, so deploys never drop your session.
+
+## Server details
+
+| Setting | Value |
+| --- | --- |
+| URL | `https://contextatlas.dev/mcp` |
+| Transport | Streamable HTTP (JSON responses, no sessions) |
+| Auth | None |
+| Tools | `search`, `get_topic`, `list_topics`, all read-only |
+
+Clients that still use the older SSE transport cannot connect. Use the HTTP or "streamable-http" type in their config, or the [stdio bridge](#clients-with-stdio-only).
+
+## Connect a client
+
+Pick your client. After adding the server, start a new session or reload the client so it picks up the tools, then check with the steps in [Verify the connection](#verify-the-connection).
+
+### Claude Code
+
+```bash
+claude mcp add --transport http contextatlas https://contextatlas.dev/mcp
+```
+
+This adds the server for the current project on your machine. Add `--scope user` to use it in every project, or `--scope project` to write it to `.mcp.json` and share it with your team through the repository:
+
+```json
+{
+  "mcpServers": {
+    "contextatlas": {
+      "type": "http",
+      "url": "https://contextatlas.dev/mcp"
+    }
+  }
+}
+```
+
+### Codex
+
+```bash
+codex mcp add contextatlas --url https://contextatlas.dev/mcp
+```
+
+Or add it to `~/.codex/config.toml` by hand:
+
+```toml
+[mcp_servers.contextatlas]
+url = "https://contextatlas.dev/mcp"
+```
+
+### Cursor
+
+Add the server to `.cursor/mcp.json` in your project, or to `~/.cursor/mcp.json` for all projects:
+
+```json
+{
+  "mcpServers": {
+    "contextatlas": {
+      "url": "https://contextatlas.dev/mcp"
+    }
+  }
+}
+```
+
+### VS Code
+
+For GitHub Copilot in agent mode, add the server to `.vscode/mcp.json` in your workspace:
+
+```json
+{
+  "servers": {
+    "contextatlas": {
+      "type": "http",
+      "url": "https://contextatlas.dev/mcp"
+    }
+  }
+}
+```
+
+Or add it to your user profile from the terminal:
+
+```bash
+code --add-mcp '{"name":"contextatlas","type":"http","url":"https://contextatlas.dev/mcp"}'
+```
+
+### Gemini CLI
+
+```bash
+gemini mcp add --transport http contextatlas https://contextatlas.dev/mcp
+```
+
+Or in `~/.gemini/settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "contextatlas": {
+      "httpUrl": "https://contextatlas.dev/mcp"
+    }
+  }
+}
+```
+
+### Windsurf
+
+In `~/.codeium/windsurf/mcp_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "contextatlas": {
+      "serverUrl": "https://contextatlas.dev/mcp"
+    }
+  }
+}
+```
+
+### OpenCode
+
+In `opencode.json` in your project, or `~/.config/opencode/opencode.json`:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "contextatlas": {
+      "type": "remote",
+      "url": "https://contextatlas.dev/mcp"
+    }
+  }
+}
+```
+
+### Claude Desktop and claude.ai
+
+Add a custom connector in the settings under Connectors, with the URL `https://contextatlas.dev/mcp`.
+
+### Clients with stdio only
+
+Clients that can only start local MCP servers can reach the remote server through [mcp-remote](https://www.npmjs.com/package/mcp-remote), which needs Node.js:
+
+```json
+{
+  "mcpServers": {
+    "contextatlas": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://contextatlas.dev/mcp"]
+    }
+  }
+}
+```
+
+### Other clients
+
+Any client that supports remote MCP servers over Streamable HTTP works. Use the URL `https://contextatlas.dev/mcp`, no headers and no auth. Config keys differ between clients; look for `url`, `httpUrl` or `serverUrl` and a type such as `http` or `streamable-http`.
+
+## Verify the connection
+
+In the client:
+
+- **Claude Code:** `claude mcp list` in the terminal, or `/mcp` inside a session.
+- **Codex:** `codex mcp list`, or `/mcp` inside a session.
+- **Others:** the MCP or tools panel should list `contextatlas` with three tools.
+
+From a terminal, without any client. This lists the tools and is the fastest way to rule out network problems:
+
+```bash
+curl -sS https://contextatlas.dev/mcp \
+  -H 'content-type: application/json' \
+  -H 'accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+The answer is JSON with `"name": "search"`, `"name": "get_topic"` and `"name": "list_topics"`. If it is not, see [Troubleshooting](/docs/mcp-troubleshooting).
+
+## Next
+
+- [MCP tools](/docs/mcp-tools): inputs, example prompts and example answers
+- [Workflows](/docs/mcp-workflows): detect a stack, fetch a vendor's llms.txt, propose a stack

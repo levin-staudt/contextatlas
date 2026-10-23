@@ -1,4 +1,4 @@
-import { buildTopicTxt, type Db, getUpdatedAt, isCompiled, siteUrl } from "@contextatlas/core";
+import { buildDocMarkdown, buildTopicTxt, type Db, getUpdatedAt, isCompiled, siteUrl } from "@contextatlas/core";
 import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
 import { cors } from "hono/cors";
@@ -8,11 +8,13 @@ import { publicDir } from "./assets";
 import { agentCacheControl, noStore, pageCacheControl } from "./cache";
 import { handleMcpRequest } from "./mcp";
 import { AgentPage } from "./pages/agent";
+import { DocsPage } from "./pages/docs";
 import { HomePage } from "./pages/home";
 import { NotFoundPage } from "./pages/not-found";
 import { loadSnapshot } from "./snapshot";
 
 const text = { "content-type": "text/plain; charset=utf-8" };
+const markdown = { "content-type": "text/markdown; charset=utf-8" };
 
 /**
  * The whole site: pages, agent files, JSON API and MCP. A thin shell around packages/core that only
@@ -24,7 +26,8 @@ export function createApp(db: Db, { log = false } = {}) {
   if (log) app.use(logger());
 
   // Agents and browser-based tools may call these from any origin.
-  for (const path of ["/api/*", "/mcp", "/llms.txt", "/llms/*", "/atlas.json"]) app.use(path, cors());
+  for (const path of ["/api/*", "/mcp", "/llms.txt", "/llms-full.txt", "/llms/*", "/atlas.json", "/docs/*"])
+    app.use(path, cors());
 
   // Chained so AppType carries the API routes for the typed CLI client (`hc<AppType>`).
   const routes = app.route("/api", createApi(db, snapshot));
@@ -39,7 +42,33 @@ export function createApp(db: Db, { log = false } = {}) {
     return c.html(AgentPage({ catalog: snapshot.catalog }));
   });
 
+  // Every docs page is HTML at /docs/<slug> and Markdown at /docs/<slug>.md; the docs home is /docs.
+  app.get("/docs", (c) => {
+    const page = snapshot.docs.page("index");
+    if (!page) return c.notFound();
+    c.header("cache-control", pageCacheControl);
+    return c.html(DocsPage({ docs: snapshot.docs, page }));
+  });
+
+  app.get("/docs/:file", (c) => {
+    const file = c.req.param("file");
+    if (file.endsWith(".md")) {
+      const page = snapshot.docs.page(file.slice(0, -".md".length));
+      if (!page) return c.body("Not found\n", 404, { ...text, "cache-control": noStore });
+      return c.body(buildDocMarkdown(page), 200, {
+        ...markdown,
+        "cache-control": agentCacheControl,
+        link: `<${siteUrl}${page.path}>; rel="canonical"`,
+      });
+    }
+    const page = snapshot.docs.page(file);
+    if (!page || page.slug === "index") return c.notFound();
+    c.header("cache-control", pageCacheControl);
+    return c.html(DocsPage({ docs: snapshot.docs, page }));
+  });
+
   app.get("/llms.txt", (c) => c.body(snapshot.llmsTxt, 200, { ...text, "cache-control": agentCacheControl }));
+  app.get("/llms-full.txt", (c) => c.body(snapshot.llmsFullTxt, 200, { ...text, "cache-control": agentCacheControl }));
 
   // Any /llms/<file> answers in plain text, so agents never get an HTML page here.
   app.get("/llms/:file", (c) => {
@@ -59,11 +88,14 @@ export function createApp(db: Db, { log = false } = {}) {
       "/",
       "/agent",
       "/llms.txt",
+      "/llms-full.txt",
       "/atlas.json",
       ...snapshot.topics.map((topic) => `/llms/${topic.id}.txt`),
-    ];
+    ].map((path) => ({ path, lastmod: snapshot.updatedAt }));
+    // Docs pages change with their MDX file, not the catalog. Their .md copies point here as canonical.
+    for (const page of snapshot.docs.pages) paths.push({ path: page.path, lastmod: page.updatedAt });
     const urls = paths.map(
-      (path) => `  <url><loc>${siteUrl}${path}</loc><lastmod>${snapshot.updatedAt}</lastmod></url>`,
+      ({ path, lastmod }) => `  <url><loc>${siteUrl}${path}</loc><lastmod>${lastmod}</lastmod></url>`,
     );
     const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join("\n")}\n</urlset>\n`;
     return c.body(xml, 200, { "content-type": "application/xml; charset=utf-8", "cache-control": agentCacheControl });

@@ -1,0 +1,162 @@
+---
+title: MCP tools
+description: The three tools of the Context Atlas MCP server, with their inputs, example prompts and example answers.
+section: MCP server
+order: 30
+updatedAt: 2026-10-23
+---
+
+All tools are read-only and answer with JSON as text. You rarely call them by name: ask your agent in plain language and it picks the tool. The example prompts below show what tends to trigger each one.
+
+## search
+
+Full-text search over tools (called topics) and their sources. It matches names, roles, summaries, detection signals (files, dependencies, environment variables), source titles and URLs. Every word must match, as a prefix, so `post` finds Postgres.
+
+| Input | Type | Description |
+| --- | --- | --- |
+| `query` | string, 1 to 200 characters | Words to search for, such as `postgres`, `vercel mcp` or `turbo.json` |
+| `kind` | optional | Only return sources of this kind: `llms`, `full`, `docs`, `mcp`, `skill`, `rules` or `guide` |
+| `limit` | optional, 1 to 50 | Maximum number of topics, default 10 |
+
+Each result has the `topic` (without its sources), the matching `sources` and a `score` (lower is better). When the topic itself matched, `sources` holds all of its sources; when only some sources matched, just those.
+
+**Example prompts**
+
+- "Which Postgres hosts does contextatlas know?"
+- "Find the MCP server for Vercel in contextatlas."
+- "This repo has a turbo.json. What does contextatlas have for it?"
+
+**Example call and answer** (shortened)
+
+```json
+{ "query": "postgres", "limit": 1 }
+```
+
+```json
+{
+  "query": "postgres",
+  "results": [
+    {
+      "topic": {
+        "id": "neon",
+        "name": "Neon",
+        "role": "Database",
+        "summary": "Serverless Postgres with branching.",
+        "bestFor": "Postgres for serverless hosting, a database branch per preview deployment.",
+        "signals": [
+          { "type": "dependency", "pattern": "@neondatabase/serverless" },
+          { "type": "hint", "pattern": "DATABASE_URL pointing to *.neon.tech" }
+        ],
+        "region": { "id": "cloud", "name": "Cloud providers" }
+      },
+      "sources": [
+        { "kind": "llms", "title": "Neon llms.txt", "url": "https://neon.com/llms.txt" },
+        { "kind": "mcp", "title": "Neon MCP server", "url": "https://neon.com/docs/ai/neon-mcp-server" }
+      ],
+      "score": -4.32
+    }
+  ]
+}
+```
+
+## get_topic
+
+Everything the catalog has on one tool: its role, summary, "best for" line, detection signals and all sources, plus `llmsTxt`, the URL of the topic's own small llms.txt file.
+
+| Input | Type | Description |
+| --- | --- | --- |
+| `id` | string | Topic id as returned by `search` or `list_topics`, such as `vercel`, `nextjs` or `drizzle` |
+
+**Example prompts**
+
+- "Get the contextatlas topic for Drizzle and read its llms.txt."
+- "What sources does contextatlas list for Cloudflare?"
+
+**Example call and answer** (shortened)
+
+```json
+{ "id": "drizzle" }
+```
+
+```json
+{
+  "updatedAt": "2026-10-22",
+  "topic": {
+    "id": "drizzle",
+    "name": "Drizzle ORM",
+    "role": "ORM",
+    "summary": "TypeScript ORM that stays close to SQL.",
+    "bestFor": "Type-safe SQL with small bundles that work on serverless and edge.",
+    "signals": [
+      { "type": "file", "pattern": "drizzle.config.ts" },
+      { "type": "dependency", "pattern": "drizzle-orm" }
+    ],
+    "sources": [
+      { "kind": "llms", "title": "Drizzle llms.txt", "url": "https://orm.drizzle.team/llms.txt" }
+    ],
+    "region": { "id": "frameworks", "name": "Frameworks" },
+    "llmsTxt": "https://contextatlas.dev/llms/drizzle.txt"
+  }
+}
+```
+
+An unknown id returns an error result, so the agent knows to search instead:
+
+```json
+{ "error": "Unknown topic \"nope\". Use search or list_topics to find ids." }
+```
+
+## list_topics
+
+Every tool in the catalog with its id, name, role, "best for" line and region, without sources. Agents use it to propose a stack, then call `get_topic` for the tools they chose.
+
+| Input | Type | Description |
+| --- | --- | --- |
+| `region` | optional string | Only this region: `cloud`, `frameworks`, `standards` or `clis` |
+
+**Example prompts**
+
+- "List the hosting options in contextatlas and pick one for a Next.js app."
+- "What agent standards does contextatlas cover?"
+
+**Example call and answer** (shortened)
+
+```json
+{ "region": "standards" }
+```
+
+```json
+{
+  "updatedAt": "2026-10-22",
+  "topics": [
+    {
+      "id": "agent-skills",
+      "name": "Agent Skills",
+      "role": "Instructions",
+      "bestFor": "Teaching an agent a repeatable workflow or a vendor's conventions.",
+      "region": "standards"
+    },
+    {
+      "id": "agents-md",
+      "name": "AGENTS.md",
+      "role": "Instructions",
+      "bestFor": "Project rules every agent should follow in this repository.",
+      "region": "standards"
+    }
+  ]
+}
+```
+
+## Source kinds
+
+The `kind` of a source tells the agent what to do with it:
+
+| Kind | Meaning | What the agent should do |
+| --- | --- | --- |
+| `llms` | llms.txt, a machine-readable index of the docs | Fetch first |
+| `rules` | Prompts and rule files to paste into an agent | Fetch first and follow |
+| `guide` | How to work with agents on this platform | Read when relevant |
+| `docs` | Full documentation or reference | Fetch the pages the task needs |
+| `full` | All docs in one file, often several megabytes | Download and search it, never read it whole |
+| `mcp` | An MCP server of the vendor | Offer to connect it, ask first |
+| `skill` | Installable agent skills | Offer to install, ask first |

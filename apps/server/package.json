@@ -16,8 +16,11 @@
   "dependencies": {
     "@contextatlas/core": "workspace:*",
     "@hono/zod-validator": "^0.9.1",
+    "@mdx-js/mdx": "^3.1.1",
     "@modelcontextprotocol/sdk": "^1.32.1",
     "hono": "^4.13.13",
+    "rehype-slug": "^6.0.0",
+    "remark-gfm": "^4.0.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {

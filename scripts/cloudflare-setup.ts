@@ -141,10 +141,21 @@ async function ensureSshAccess({ needSecret }: { needSecret: boolean }) {
  * /mcp, /api/* and /healthz always reach the VPS. Note: replaces the zone's other cache rules.
  */
 async function ensureCacheRule(zoneId: string) {
-  const paths = ["/", "/agent", "/llms.txt", "/atlas.json", "/sitemap.xml", "/robots.txt", "/favicon.svg"];
+  const paths = [
+    "/",
+    "/agent",
+    "/docs",
+    "/llms.txt",
+    "/llms-full.txt",
+    "/atlas.json",
+    "/sitemap.xml",
+    "/robots.txt",
+    "/favicon.svg",
+  ];
   const expression =
     `http.host eq "${domain}" and (http.request.uri.path in {${paths.map((p) => `"${p}"`).join(" ")}}` +
-    ` or starts_with(http.request.uri.path, "/llms/") or starts_with(http.request.uri.path, "/assets/"))`;
+    ` or starts_with(http.request.uri.path, "/llms/") or starts_with(http.request.uri.path, "/docs/")` +
+    ` or starts_with(http.request.uri.path, "/assets/"))`;
   await cf("PUT", `/zones/${zoneId}/rulesets/phases/http_request_cache_settings/entrypoint`, {
     rules: [
       {
@@ -200,7 +211,9 @@ async function main() {
   console.log(`Access: ${sshHost} allows only the service token ${serviceTokenName}`);
 
   await ensureCacheRule(zone.id);
-  console.log("Cache rule: pages, /llms.txt, /llms/*, /atlas.json, /assets/* cached per Cache-Control");
+  console.log(
+    "Cache rule: pages, /docs/*, /llms.txt, /llms-full.txt, /llms/*, /atlas.json, /assets/* cached per Cache-Control",
+  );
 
   if (github) {
     gh(["variable", "set", "DEPLOY_SSH_HOST", "--body", sshHost]);

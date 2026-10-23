@@ -1,11 +1,16 @@
 // `bun dev`: runs `src/main.ts dev` (seed, then serve) and restarts it whenever the server or
 // packages/core changes. `bun --watch` alone does not follow the workspace import into packages/core,
-// so catalog edits would not re-seed.
+// so catalog edits would not re-seed. Docs pages are compiled at startup, so their edits restart it too.
 import { type FSWatcher, watch } from "node:fs";
 import { join } from "node:path";
 
 const root = join(import.meta.dir, "..");
-const watched = [join(root, "src"), join(root, "../../packages/core/src"), join(root, "../../packages/core/drizzle")];
+const watched = [
+  join(root, "src"),
+  join(root, "../../packages/core/src"),
+  join(root, "../../packages/core/drizzle"),
+  join(root, "../../packages/core/docs"),
+];
 
 let child: ReturnType<typeof Bun.spawn> | undefined;
 let timer: ReturnType<typeof setTimeout> | undefined;

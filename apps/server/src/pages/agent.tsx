@@ -59,6 +59,13 @@ export function AgentPage({ catalog }: { catalog: Catalog }) {
           <div class="mt-4">
             <CopyButton target="mcp" label="Copy command" />
           </div>
+          <p class="mt-6 font-sans text-ink-soft">
+            Using Cursor, Codex, VS Code or another client?{" "}
+            <a href="/docs/mcp" class="text-ink underline">
+              Set it up with the docs
+            </a>
+            .
+          </p>
         </section>
       </main>
     </Layout>

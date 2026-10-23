@@ -7,7 +7,7 @@ Context Atlas exists so that a project can be developed 100% from inside the age
 Judge every change against that goal:
 
 - Prefer sources an agent can use directly from the terminal: CLIs, MCP servers, llms.txt and machine-readable docs over pages written for humans.
-- `/llms.txt`, `/atlas.json`, the `/agent` prompt, the MCP tools and the JSON API are the main product; keep them complete and in sync with [`packages/core/src/catalog.ts`](packages/core/src/catalog.ts).
+- `/llms.txt`, `/llms-full.txt`, `/atlas.json`, the `/agent` prompt, the `/docs`, the MCP tools and the JSON API are the main product; keep them complete and in sync with [`packages/core/src/catalog.ts`](packages/core/src/catalog.ts).
 - This repo follows the same rule: building, previewing, deploying and operating it must work from the harness (`bun dev`, `bun run build`, `bun run deploy`, `scripts/vps.sh`).
 
 ## Commands
@@ -28,6 +28,7 @@ Verify changes by running them, not only by reading: `bun test` uses `createApp(
 ## Map
 
 - `packages/core/src/catalog.ts`: the catalog, the only file to edit for content. `types.ts` explains signal types.
+- `packages/core/docs/*.mdx`: the docs at `/docs/<slug>` (and `/docs/<slug>.md`). One file per page, frontmatter `title`, `description`, `section`, `order`, `updatedAt` (bump it with every edit); `docs.ts` loads them, `apps/server/src/docs.ts` compiles them at startup.
 - `packages/core/src/{schema,db,seed,queries,search,llms}.ts`: SQLite schema (Drizzle), idempotent seed, read queries, FTS5 search, llms.txt and prompt text. Everything else calls these.
 - `apps/server/src/app.ts`: all routes. `api.ts` (JSON API, typed for `hc<AppType>`), `mcp.ts` (stateless MCP), `pages/` (Hono JSX, server-rendered), `client/main.ts` (small progressive-enhancement script), `styles.css` (Tailwind v4).
 - `apps/redirect`: the 301 Worker for the old workers.dev URL.
