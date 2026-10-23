@@ -218,7 +218,7 @@ describe("api", () => {
   });
 
   test("search", async () => {
-    const res = await client.api.search.$get({ query: { q: "postgres", limit: "3" } });
+    const res = await client.api.search.$get({ query: { q: "database", limit: "3" } });
     if (res.status !== 200) throw new Error(`search failed with ${res.status}`);
     const data = await res.json();
     expect(data.results.length).toBe(3);

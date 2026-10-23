@@ -66,7 +66,9 @@ describe("search", () => {
 
   test("finds topics by name, role and signal", () => {
     expect(search(db, "supabase")[0]?.topic.id).toBe("supabase");
-    expect(search(db, "postgres").map((r) => r.topic.id)).toContain("neon");
+    expect(search(db, "database").map((r) => r.topic.id)).toContain("neon");
+    expect(search(db, "postgres").map((r) => r.topic.id)).toEqual(expect.arrayContaining(["neon", "supabase"]));
+    expect(search(db, "post").map((r) => r.topic.id)).toContain("neon");
     expect(search(db, "turbo.json")[0]?.topic.id).toBe("turborepo");
   });
 

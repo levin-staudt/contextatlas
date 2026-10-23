@@ -22,8 +22,6 @@ export const topics = sqliteTable(
       .references(() => regions.id, { onDelete: "cascade" }),
     name: text().notNull(),
     role: text().notNull(),
-    summary: text().notNull(),
-    bestFor: text("best_for").notNull(),
     position: integer().notNull(),
   },
   (table) => [index("topics_region_idx").on(table.regionId, table.position)],

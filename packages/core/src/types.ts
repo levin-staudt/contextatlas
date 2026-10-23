@@ -31,9 +31,6 @@ export type Topic = {
   name: string;
   /** Short role in a stack, e.g. "Hosting" or "Database". */
   role: string;
-  summary: string;
-  /** When to pick this tool. Used to help agents choose a stack. */
-  bestFor: string;
   /** Files, dependencies or config an agent can look for to detect this topic in a repo. */
   signals: Signal[];
   sources: Source[];

@@ -15,7 +15,7 @@ The whole catalog is one file: `packages/core/src/catalog.ts`.
 1. Find the sources the vendor publishes for agents and check that each URL works. Look for, in this order: `/llms.txt`, `/llms-full.txt`, an MCP server (docs page and GitHub repo), agent skills, AI rules or prompt pages, an AI or agents guide, and the CLI reference. Only add links published by the vendor or its official GitHub organization.
 2. Edit `packages/core/src/catalog.ts`:
    - For an existing tool, add a source (`kind`, `title`, `url`) to its `sources`.
-   - For a new tool, add a topic to the right region (`cloud`, `frameworks`, `standards` or `clis`), with an `id` (lowercase slug), a short `role`, a one-sentence `summary` and a `bestFor` line that says when to pick it.
+   - For a new tool, add a topic to the right region (`cloud`, `frameworks`, `standards` or `clis`), with an `id` (lowercase slug), a name, a short `role` and detection `signals`.
    - Add signals so agents can detect the tool in a repo: `file("fly.toml")`, `dep("@vercel/*")`, `env("OPENAI_API_KEY")` or, for anything else, `hint("…")`. Prefer files and dependencies over hints.
 3. Set `updatedAt` at the top of the file to today's date.
 4. Run `bun run check`. The tests reject duplicate ids or URLs, links that are not https and malformed signals.

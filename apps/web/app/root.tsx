@@ -47,7 +47,6 @@ export function loader({ context }: Route.LoaderArgs) {
         name: topic.name,
         role: topic.role,
         region: region.name,
-        summary: topic.summary,
       })),
     ),
     docs: site.docs.pages.map((page) => ({

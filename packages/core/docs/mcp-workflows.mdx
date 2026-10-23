@@ -48,7 +48,7 @@ Use contextatlas to propose a stack for a booking app for a small climbing gym, 
 ```
 
 1. The agent asks about anything the description leaves open: traffic, budget, where it should run.
-2. It calls `list_topics` (optionally per region, such as `cloud` or `frameworks`) and compares the "best for" lines.
+2. It calls `list_topics` (optionally per region, such as `cloud` or `frameworks`) and groups the tools by role, then reads the sources of the candidates with `get_topic`.
 3. It proposes one tool per role (hosting, framework, database, auth, payments) and names a close alternative where there is one.
 4. After you agree, it calls `get_topic` for each chosen tool and sets the project up with the vendors' own CLIs and conventions.
 
