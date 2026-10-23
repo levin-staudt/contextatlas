@@ -1,6 +1,7 @@
-// `bun dev`: runs `src/main.ts dev` (seed, then serve) and restarts it whenever the server or
-// packages/core changes. `bun --watch` alone does not follow the workspace import into packages/core,
-// so catalog edits would not re-seed. Docs pages are compiled at startup, so their edits restart it too.
+// `bun dev`: runs `src/dev.ts` (seed, then serve with Vite for the pages) and restarts it whenever the
+// server or packages/core changes. `bun --watch` alone does not follow the workspace import into
+// packages/core, so catalog edits would not re-seed. Docs pages are compiled at startup, so their edits
+// restart it too. Edits in apps/web need no restart: Vite hot-reloads them.
 import { type FSWatcher, watch } from "node:fs";
 import { join } from "node:path";
 
@@ -23,14 +24,13 @@ function start() {
       child.kill();
       await child.exited;
     }
-    child = Bun.spawn(["bun", "src/main.ts", "dev"], { cwd: root, stdio: ["inherit", "inherit", "inherit"] });
+    child = Bun.spawn(["bun", "src/dev.ts"], { cwd: root, stdio: ["inherit", "inherit", "inherit"] });
   });
   return restarting;
 }
 
 const watchers: FSWatcher[] = watched.map((dir) =>
   watch(dir, { recursive: true }, (_event, file) => {
-    if (file?.startsWith("client/") || file === "styles.css") return; // handled by build-assets --watch
     clearTimeout(timer);
     timer = setTimeout(() => {
       console.log(`Changed ${file}, restarting`);

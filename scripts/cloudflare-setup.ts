@@ -8,6 +8,8 @@
 // Reads CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID and DOMAIN from the environment or .env.
 // See docs/deploy.md for the token permissions and the full runbook.
 
+import { staticPagePaths } from "../apps/web/app/pages";
+
 const token = required("CLOUDFLARE_API_TOKEN");
 const accountId = required("CLOUDFLARE_ACCOUNT_ID");
 const domain = process.env.DOMAIN ?? "contextatlas.dev";
@@ -138,13 +140,14 @@ async function ensureSshAccess({ needSecret }: { needSecret: boolean }) {
 /**
  * Cloudflare does not cache HTML, .txt or .json by default. This rule makes it cache the pages and
  * agent files for as long as the origin's Cache-Control allows (s-maxage=86400); deploys purge it.
+ * The .data paths are what client-side navigation fetches instead of the page (React Router).
  * /mcp, /api/* and /healthz always reach the VPS. Note: replaces the zone's other cache rules.
  */
 async function ensureCacheRule(zoneId: string) {
+  const pages = staticPagePaths();
   const paths = [
-    "/",
-    "/agent",
-    "/docs",
+    ...pages.pages,
+    ...pages.data,
     "/llms.txt",
     "/llms-full.txt",
     "/atlas.json",
@@ -212,7 +215,7 @@ async function main() {
 
   await ensureCacheRule(zone.id);
   console.log(
-    "Cache rule: pages, /docs/*, /llms.txt, /llms-full.txt, /llms/*, /atlas.json, /assets/* cached per Cache-Control",
+    "Cache rule: pages and their .data, /docs/*, /llms.txt, /llms-full.txt, /llms/*, /atlas.json, /assets/* cached per Cache-Control",
   );
 
   if (github) {
@@ -249,5 +252,3 @@ async function saveEnv(values: Record<string, string>) {
 }
 
 await main();
-
-export {};

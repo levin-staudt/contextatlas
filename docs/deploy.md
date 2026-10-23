@@ -1,6 +1,6 @@
 # Deploy
 
-Production is one binary plus `public/` and `drizzle/` on a VPS (OVH VPS-1), run by systemd and reachable only through a Cloudflare Tunnel. No inbound ports are open; SSH also goes through the tunnel, behind Cloudflare Access.
+Production is one binary (the Hono server with the React Router pages of `apps/web` bundled in) plus `public/` (the hashed browser files of `apps/web`) and `drizzle/` on a VPS (OVH VPS-1), run by systemd and reachable only through a Cloudflare Tunnel. No inbound ports are open; SSH also goes through the tunnel, behind Cloudflare Access.
 
 ```
 GitHub Actions ──ssh via cloudflared + Access service token──▶ ssh.contextatlas.dev ─┐
@@ -52,7 +52,7 @@ Then:
 bun run cloudflare:setup -- --github
 ```
 
-It creates or updates the zone, the tunnel `contextatlas` (`contextatlas.dev` → `http://localhost:3000`, `ssh.contextatlas.dev` → `ssh://localhost:22`), the DNS records, an Access application that lets only the service token `contextatlas-github-deploy` reach SSH, and the cache rule. With `--github` it also sets the repo variables `DEPLOY_SSH_HOST`, `CLOUDFLARE_ZONE_ID`, `SITE_URL` and the secrets `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET`. A service token's secret can only be read when it is created, so if the token already exists and GitHub does not have its secret yet, `--github` rotates it to get one it can store. The script stores the new service token values in `.env` as well, for `scripts/vps.sh`.
+It creates or updates the zone, the tunnel `contextatlas` (`contextatlas.dev` → `http://localhost:3000`, `ssh.contextatlas.dev` → `ssh://localhost:22`), the DNS records, an Access application that lets only the service token `contextatlas-github-deploy` reach SSH, and the cache rule (pages, the `.data` requests their client-side navigation makes, agent files and `/assets/*`; rerun the script after changing it). With `--github` it also sets the repo variables `DEPLOY_SSH_HOST`, `CLOUDFLARE_ZONE_ID`, `SITE_URL` and the secrets `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET`. A service token's secret can only be read when it is created, so if the token already exists and GitHub does not have its secret yet, `--github` rotates it to get one it can store. The script stores the new service token values in `.env` as well, for `scripts/vps.sh`.
 
 A second, narrower token (Zone: Cache Purge only) lets the workflow purge the cache after each deploy:
 

@@ -89,9 +89,12 @@ export function buildLlmsFullTxt(catalog: Catalog, docs: DocPage[]) {
   return `${buildLlmsTxt(catalog, docs)}\n# Docs\n\n${pages.join("\n")}`;
 }
 
+/** Stands in for the user's idea in the new-project prompt until they type one; /agent replaces it. */
+export const ideaPlaceholder = "<describe what you want to build>";
+
 /** The one-sentence prompts on /agent. They only point to llms.txt, which holds the real instructions. */
 export const agentPrompts = {
   existing: `Read ${llmsUrl} and follow its instructions for an existing project: detect the stack of this repository, tell me what you found, then load the matching sources and follow their best practices.`,
   new: (idea: string) =>
-    `Read ${llmsUrl} and follow its instructions for a new project: suggest a tech stack for what I describe below, explain the trade-offs, and once I agree, use the matching sources to set it up.\n\nMy project: ${idea.trim() || "<describe what you want to build>"}`,
+    `Read ${llmsUrl} and follow its instructions for a new project: suggest a tech stack for what I describe below, explain the trade-offs, and once I agree, use the matching sources to set it up.\n\nMy project: ${idea.trim() || ideaPlaceholder}`,
 };

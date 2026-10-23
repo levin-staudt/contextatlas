@@ -3,7 +3,8 @@ node_modules
 !.env.example
 /dist/
 data/
-apps/server/public/assets/
 *.db
 *.db-*
 .wrangler/
+.react-router/
+apps/web/build/

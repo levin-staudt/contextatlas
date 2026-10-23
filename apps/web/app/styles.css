@@ -46,6 +46,8 @@
     color: var(--ink);
     font-family: var(--font-serif);
     -webkit-font-smoothing: antialiased;
+    /* No rubber-band scrolling past the top or bottom edge of the page. */
+    overscroll-behavior-y: none;
   }
 
   body {
@@ -127,6 +129,12 @@
   .doc hr {
     @apply my-10 border-contour;
   }
+  .doc .heading-anchor {
+    @apply ml-2 font-normal text-contour no-underline opacity-0 transition-opacity hover:text-sea focus-visible:opacity-100;
+  }
+  .doc :is(h2, h3):hover .heading-anchor {
+    @apply opacity-100;
+  }
 }
 
 @keyframes chart-draw {
@@ -147,5 +155,43 @@
 @media (prefers-reduced-motion: reduce) {
   .chart-line {
     animation: none;
+  }
+}
+
+/* Page changes cross-fade (React <ViewTransition> in root.tsx); the header and footer stay put. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 160ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    /* biome-ignore lint/complexity/noImportantStyles: reduced motion must win over every transition */
+    animation: none !important;
+  }
+}
+
+/* Thin bar at the top while a navigation waits for its data. */
+@keyframes nav-progress {
+  from {
+    transform: scaleX(0.1);
+  }
+  to {
+    transform: scaleX(0.9);
+  }
+}
+
+.nav-progress {
+  transform-origin: left;
+  animation: nav-progress 4s cubic-bezier(0.1, 0.6, 0.2, 1) both;
+}
+
+/* Sticky sidebars still scroll when taller than the window, without a scrollbar over the layout. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
   }
 }
