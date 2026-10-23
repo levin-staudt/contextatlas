@@ -1,0 +1,54 @@
+---
+title: Reading a topic
+description: How to find and filter tools on the home page, and what each line of a topic means.
+section: The website
+order: 80
+updatedAt: 2026-10-23
+---
+
+## Find a topic
+
+The [home page](/) lists every topic, grouped by region.
+
+- **Search.** Type into "Search the atlas" to filter as you type. It matches names, roles, summaries, detection signals and source titles and URLs, so `postgres`, `auth` or `turbo.json` all work. The search is kept in the URL, as in [/?q=postgres](/?q=postgres), so you can share it.
+- **Filter by kind.** The legend lists the source kinds. Click a symbol to hide that kind of source, for example to see only MCP servers.
+- **Jump to a region.** The region links take you to Cloud providers, Frameworks, Standards or CLIs.
+- **Link to a topic.** Every topic has an anchor with its id, such as [/#supabase](/#supabase).
+
+Without JavaScript the page shows everything; search and filters are added on top.
+
+## What a topic shows
+
+Take Neon as an example:
+
+- **Name and role:** "Neon", "Database". The role is the job the tool does in a stack.
+- **Summary:** one sentence on what it is. "Serverless Postgres with branching."
+- **Best for:** when to pick it over the alternatives. Agents use this line to propose a stack.
+- **Sources:** the links Neon publishes for agents, each marked with its kind.
+
+The detection signals do not show on the page, but they are in every agent file. For Neon, they are the `@neondatabase/serverless` dependency and a `DATABASE_URL` that points to `*.neon.tech`.
+
+## Source kinds
+
+| Kind | What it is | How to use it |
+| --- | --- | --- |
+| llms.txt | A machine-readable index of the vendor's docs | Give it to your agent first |
+| Full text | All docs in one file, often several megabytes | Let the agent search it; too large to read whole |
+| Docs | Full documentation or reference | Read the parts you need |
+| MCP server | Tools an agent can call directly, such as deploying or querying a database | Connect it to your agent |
+| Agent skill | Installable instructions for agents | Install it in your agent |
+| Rules | Prompts and rule files to paste into an agent | Add them to your agent's rules |
+| Guide | How to work with agents on this platform | Read before you start |
+
+## Signals
+
+Signals tell an agent that a project uses a topic. There are four types:
+
+- **File:** a path or glob relative to the repo root or a workspace package. A trailing `/` means a directory, as in `supabase/`; `**/` matches at any depth.
+- **Dependency:** a package name in `package.json`. `*` matches any part, as in `@vercel/*`.
+- **Env:** an environment variable name, such as `OPENAI_API_KEY`, found in `.env` files, CI config or code.
+- **Hint:** a plain-language clue that cannot be checked mechanically.
+
+## Everything in one place for one topic
+
+Each topic has a small file with all of the above: `/llms/<id>.txt`, for example [/llms/neon.txt](/llms/neon.txt). It is the quickest way to hand one tool's sources to an agent.

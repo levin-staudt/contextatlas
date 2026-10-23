@@ -1,0 +1,57 @@
+---
+title: Workflows
+description: Typical tasks with the Context Atlas MCP server, from detecting a project's stack to fetching a vendor's llms.txt.
+section: MCP server
+order: 40
+updatedAt: 2026-10-23
+---
+
+Each workflow starts with a prompt you can paste as is. The steps show what a well-behaved agent does with it, so you can tell when it skips one.
+
+## Detect a project's stack and load the docs
+
+```text
+Use contextatlas to detect the stack of this repository. Tell me what you found and which file proves it, then load the matching sources and follow their conventions.
+```
+
+1. The agent reads `package.json` (and every workspace `package.json` in a monorepo), the lockfile and config files such as `vercel.json`, `wrangler.jsonc` or `drizzle.config.ts`.
+2. It calls `search` for each dependency or file it is unsure about, for example `search("drizzle.config.ts")`. A match on a topic's signals means the topic is part of the stack.
+3. It reports the stack: each tool with the file that proves it, and anything the catalog does not cover.
+4. It calls `get_topic` for each detected tool and fetches the `llms` or `rules` source first, then only the docs pages the task needs.
+5. If a topic has an MCP server, skill or CLI, it lists them and asks before installing anything.
+
+Add the prompt to your project's `AGENTS.md` or `CLAUDE.md` if every session should start this way.
+
+## Fetch a vendor's llms.txt
+
+```text
+Get the llms.txt for Supabase from contextatlas and use it to answer: how do I enable row level security?
+```
+
+1. `search("supabase", kind: "llms")` or `get_topic("supabase")` returns the vendor's llms.txt URL, here `https://supabase.com/llms.txt`.
+2. The agent fetches that URL, follows the links in it to the relevant pages and answers from them.
+
+If you only need the links, the topic file works without MCP too: [/llms/supabase.txt](/llms/supabase.txt) lists every Supabase source as plain text.
+
+## Find a vendor's MCP server or skills
+
+```text
+Does Neon have an MCP server or agent skills? Use contextatlas, and ask me before you install anything.
+```
+
+The agent calls `search("neon", kind: "mcp")` and `search("neon", kind: "skill")`, shows you what exists and waits for your answer. To connect a vendor's MCP server, it follows the instructions on the linked page.
+
+## Propose a stack for a new project
+
+```text
+Use contextatlas to propose a stack for a booking app for a small climbing gym, with payments and a staff dashboard. One tool per role, with trade-offs. Wait for my approval before setting anything up.
+```
+
+1. The agent asks about anything the description leaves open: traffic, budget, where it should run.
+2. It calls `list_topics` (optionally per region, such as `cloud` or `frameworks`) and compares the "best for" lines.
+3. It proposes one tool per role (hosting, framework, database, auth, payments) and names a close alternative where there is one.
+4. After you agree, it calls `get_topic` for each chosen tool and sets the project up with the vendors' own CLIs and conventions.
+
+## Check what changed in the catalog
+
+Every answer contains `updatedAt`, the date of the last catalog change. Ask "When was contextatlas last updated?" to see whether your agent is working from current data.

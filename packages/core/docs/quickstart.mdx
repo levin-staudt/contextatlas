@@ -1,0 +1,45 @@
+---
+title: Quickstart
+description: Connect the Context Atlas MCP server to your agent and run a first query, in about two minutes.
+section: Start
+order: 10
+updatedAt: 2026-10-23
+---
+
+## 1. Connect the MCP server
+
+The server lives at `https://contextatlas.dev/mcp`. It uses Streamable HTTP and needs no key. In Claude Code, run this in your terminal:
+
+```bash
+claude mcp add --transport http contextatlas https://contextatlas.dev/mcp
+```
+
+Using Cursor, Codex, VS Code or another client? Copy its snippet from [Connect a client](/docs/mcp#connect-a-client) instead.
+
+## 2. Check that it is connected
+
+Start a new session of your agent and list the MCP servers. In Claude Code, run `claude mcp list` in the terminal or type `/mcp` inside a session. `contextatlas` should show as connected, with three tools: `search`, `get_topic` and `list_topics`.
+
+## 3. Ask your first question
+
+Open your project and ask the agent, for example:
+
+```text
+Use the contextatlas MCP server to detect the stack of this repository and load the docs for it.
+```
+
+The agent reads your `package.json` and config files, calls `search` for what it finds, then `get_topic` for each tool, and fetches the llms.txt or rule files the catalog points to. For a new project, ask instead:
+
+```text
+Use contextatlas to propose a stack for a booking app with payments. Explain the trade-offs before you set anything up.
+```
+
+## No MCP support?
+
+Paste the one-sentence prompt from [/agent](/agent) into any agent with web access. It points the agent to [/llms.txt](/llms.txt), which holds the same catalog and instructions as plain text. See [Give it to your agent](/docs/agents).
+
+## Next
+
+- [MCP tools](/docs/mcp-tools): what each tool takes and returns
+- [Workflows](/docs/mcp-workflows): typical tasks from start to finish
+- [Troubleshooting](/docs/mcp-troubleshooting): when the connection fails

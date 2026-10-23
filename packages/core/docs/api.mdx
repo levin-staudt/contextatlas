@@ -1,0 +1,95 @@
+---
+title: JSON API
+description: Read the catalog over HTTP with /api/topics, /api/topics/:id and /api/search. No key needed.
+section: Reference
+order: 100
+updatedAt: 2026-10-23
+---
+
+The API returns the same data as the MCP tools, as JSON. It needs no key and allows requests from any origin.
+
+## GET /api/topics
+
+Every topic with its region, signals and sources.
+
+```bash
+curl -s https://contextatlas.dev/api/topics
+```
+
+```json
+{
+  "updatedAt": "2026-10-22",
+  "topics": [
+    {
+      "id": "vercel",
+      "name": "Vercel",
+      "role": "Hosting",
+      "summary": "Frontend cloud with Functions, storage, AI Gateway and preview deployments.",
+      "bestFor": "Next.js and other web frameworks, preview deployments per pull request, AI apps.",
+      "signals": [{ "type": "file", "pattern": "vercel.json" }],
+      "sources": [{ "kind": "mcp", "title": "Vercel MCP server", "url": "https://vercel.com/docs/mcp/vercel-mcp" }],
+      "region": { "id": "cloud", "name": "Cloud providers" }
+    }
+  ]
+}
+```
+
+## GET /api/topics/:id
+
+One topic by id.
+
+```bash
+curl -s https://contextatlas.dev/api/topics/hono
+```
+
+Returns `{ "updatedAt": "…", "topic": { … } }`. An unknown id returns 404 with an `error` message.
+
+## GET /api/search
+
+Full-text search, the same as the MCP tool `search`. Every word must match, as a prefix.
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `q` | required, 1 to 200 characters | Words to search for |
+| `kind` | optional | `llms`, `full`, `docs`, `mcp`, `skill`, `rules` or `guide` |
+| `limit` | optional, 1 to 50 | Maximum number of topics, default 10 |
+
+```bash
+curl -s 'https://contextatlas.dev/api/search?q=vercel&kind=mcp&limit=2'
+```
+
+```json
+{
+  "query": "vercel",
+  "results": [
+    {
+      "topic": { "id": "vercel", "name": "Vercel", "role": "Hosting" },
+      "sources": [{ "kind": "mcp", "title": "Vercel MCP server", "url": "https://vercel.com/docs/mcp/vercel-mcp" }],
+      "score": -6.1
+    }
+  ]
+}
+```
+
+Invalid parameters return 400 with an `error` message that names the parameter.
+
+## Caching
+
+Responses carry `Cache-Control` headers: topics for an hour in the browser and a day at the CDN, search results for five minutes. The catalog changes only with a deploy, so there is no need to poll.
+
+## Other formats
+
+- [/atlas.json](/atlas.json): the whole catalog in one file, grouped by region, with each topic's `llmsTxt` URL
+- [/llms.txt](/llms.txt) and `/llms/<id>.txt`: the same data as Markdown for agents
+
+## Typed client
+
+The API is a [Hono](https://hono.dev) app, and its route types are exported as `AppType`. TypeScript projects in this repository can use the typed client:
+
+```ts
+import type { AppType } from "@contextatlas/server";
+import { hc } from "hono/client";
+
+const api = hc<AppType>("https://contextatlas.dev");
+const res = await api.api.topics[":id"].$get({ param: { id: "cloudflare" } });
+```

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { catalog, openDatabase, seedDatabase, siteUrl } from "@contextatlas/core";
+import { catalog, loadDocs, openDatabase, seedDatabase, siteUrl } from "@contextatlas/core";
 import { hc } from "hono/client";
 import { type AppType, createApp } from "../src/app";
 
@@ -7,6 +7,7 @@ const db = openDatabase(":memory:");
 seedDatabase(db);
 const app = createApp(db);
 const topicCount = catalog.regions.reduce((sum, region) => sum + region.topics.length, 0);
+const docCount = loadDocs().length;
 
 describe("pages", () => {
   test("home renders every topic with metadata", async () => {
@@ -27,10 +28,53 @@ describe("pages", () => {
     expect(html).toContain(`Read ${siteUrl}/llms.txt`);
   });
 
+  test("home and agent page link to the docs", async () => {
+    for (const path of ["/", "/agent"]) expect(await (await app.request(path)).text()).toContain('href="/docs"');
+  });
+
   test("unknown paths are 404 and not cached", async () => {
     const res = await app.request("/nope");
     expect(res.status).toBe(404);
     expect(res.headers.get("cache-control")).toBe("no-store");
+  });
+});
+
+describe("docs", () => {
+  test("docs home and pages render with sidebar and metadata", async () => {
+    const home = await app.request("/docs");
+    expect(home.status).toBe(200);
+    expect(home.headers.get("cache-control")).toContain("s-maxage=86400");
+    expect(await home.text()).toContain("<title>Docs · Context Atlas</title>");
+
+    const html = await (await app.request("/docs/mcp")).text();
+    expect(html).toContain("<title>MCP server · Context Atlas docs</title>");
+    expect(html).toContain(`<link rel="canonical" href="${siteUrl}/docs/mcp"/>`);
+    expect(html).toContain('<link rel="alternate" type="text/markdown" href="/docs/mcp.md"/>');
+    expect(html).toContain('<meta property="og:type" content="article"/>');
+    expect(html).toContain('<a href="/docs/mcp" aria-current="page"');
+    expect(html).toContain('<h2 id="connect-a-client">');
+    expect(html).toContain(`claude mcp add --transport http contextatlas ${siteUrl}/mcp`);
+  });
+
+  test("every page as Markdown", async () => {
+    const res = await app.request("/docs/mcp.md");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toStartWith("text/markdown");
+    expect(res.headers.get("access-control-allow-origin")).toBe("*");
+    expect(res.headers.get("link")).toBe(`<${siteUrl}/docs/mcp>; rel="canonical"`);
+    const body = await res.text();
+    expect(body).toStartWith("# MCP server\n\n> ");
+    expect(body).toContain(`](${siteUrl}/docs/mcp#clients-with-stdio-only)`);
+    expect((await app.request("/docs/index.md")).status).toBe(200);
+  });
+
+  test("unknown pages are 404 and not cached", async () => {
+    for (const path of ["/docs/nope", "/docs/index", "/docs/nope.md"]) {
+      const res = await app.request(path);
+      expect(res.status).toBe(404);
+      expect(res.headers.get("cache-control")).toBe("no-store");
+    }
+    expect((await app.request("/docs/nope.md")).headers.get("content-type")).toStartWith("text/plain");
   });
 });
 
@@ -40,7 +84,19 @@ describe("agent files", () => {
     expect(res.headers.get("content-type")).toStartWith("text/plain");
     expect(res.headers.get("cache-control")).toContain("s-maxage=86400");
     expect(res.headers.get("access-control-allow-origin")).toBe("*");
-    expect(await res.text()).toStartWith("# Context Atlas");
+    const body = await res.text();
+    expect(body).toStartWith("# Context Atlas");
+    expect(body).toContain(`(${siteUrl}/docs/mcp.md)`);
+    expect(body).toContain(`${siteUrl}/llms-full.txt`);
+  });
+
+  test("llms-full.txt has llms.txt and every docs page", async () => {
+    const res = await app.request("/llms-full.txt");
+    expect(res.headers.get("content-type")).toStartWith("text/plain");
+    const body = await res.text();
+    expect(body).toStartWith("# Context Atlas");
+    expect(body).toContain("\n# Docs\n");
+    expect(body.match(/^## .+\n\n> /gm)?.length).toBe(docCount);
   });
 
   test("per-topic llms file, and 404 without cache for unknown topics", async () => {
@@ -68,8 +124,12 @@ describe("agent files", () => {
 
   test("sitemap.xml has lastmod for every URL", async () => {
     const xml = await (await app.request("/sitemap.xml")).text();
-    expect(xml.match(/<url>/g)?.length).toBe(4 + topicCount);
-    expect(xml.match(/<lastmod>/g)?.length).toBe(4 + topicCount);
+    const count = 5 + topicCount + docCount;
+    expect(xml.match(/<url>/g)?.length).toBe(count);
+    expect(xml.match(/<lastmod>/g)?.length).toBe(count);
+    const mcp = loadDocs().find((page) => page.slug === "mcp")!;
+    expect(xml).toContain(`<loc>${siteUrl}/docs/mcp</loc><lastmod>${mcp.updatedAt}</lastmod>`);
+    expect(xml).not.toContain(".md</loc>");
   });
 });
 
@@ -126,6 +186,7 @@ describe("mcp", () => {
       clientInfo: { name: "test", version: "0" },
     });
     expect(result.serverInfo.name).toBe("contextatlas");
+    expect(result.instructions).toContain(`${siteUrl}/llms-full.txt`);
   });
 
   test("lists the tools", async () => {

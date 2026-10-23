@@ -1,0 +1,21 @@
+---
+title: Submitting data
+description: The planned write access to the MCP server for adding and updating catalog entries, with tokens and a review queue.
+section: MCP server
+order: 60
+updatedAt: 2026-10-23
+---
+
+> **Planned.** Write access does not exist yet; it is tracked in [issue #19](https://github.com/levin-staudt/contextatlas/issues/19). Until it ships, add sources with a pull request as described in [Contributing](/docs/contributing).
+
+The public server at `/mcp` is read-only and stays that way: no login, no key. Adding data will go through a separate, secured endpoint.
+
+## How it will work
+
+- **Separate endpoint.** A second MCP server, such as `/mcp/admin`, next to the public one.
+- **Token.** Every request carries a bearer token. Tokens are issued and revoked by the maintainers and stored only as a hash. Requests without a valid token are rejected with 401 or 403.
+- **Write tools.** Tools such as `add_topic`, `update_topic`, `add_source` and `propose_change`. Input is checked against the same schema as the catalog itself, so a malformed entry is rejected before review.
+- **Review first.** New entries land in a review queue and go live only after a maintainer accepts them.
+- **Audit log and rate limit.** Every change is recorded with token and time, and each token has a rate limit.
+
+These docs will describe how to request a token, connect the endpoint and follow a submission through review once it is available.

@@ -1,0 +1,58 @@
+---
+title: Contributing
+description: Add a vendor, tool or source to Context Atlas with a pull request, or add a docs page.
+section: Reference
+order: 120
+updatedAt: 2026-10-23
+---
+
+Context Atlas lives in [one GitHub repository](https://github.com/levin-staudt/contextatlas). Every change is a pull request, and every merge to `main` is deployed.
+
+## Add a vendor or source
+
+The whole catalog is one file: `packages/core/src/catalog.ts`.
+
+1. Find the sources the vendor publishes for agents and check that each URL works. Look for, in this order: `/llms.txt`, `/llms-full.txt`, an MCP server (docs page and GitHub repo), agent skills, AI rules or prompt pages, an AI or agents guide, and the CLI reference. Only add links published by the vendor or its official GitHub organization.
+2. Edit `packages/core/src/catalog.ts`:
+   - For an existing tool, add a source (`kind`, `title`, `url`) to its `sources`.
+   - For a new tool, add a topic to the right region (`cloud`, `frameworks`, `standards` or `clis`), with an `id` (lowercase slug), a short `role`, a one-sentence `summary` and a `bestFor` line that says when to pick it.
+   - Add signals so agents can detect the tool in a repo: `file("fly.toml")`, `dep("@vercel/*")`, `env("OPENAI_API_KEY")` or, for anything else, `hint("…")`. Prefer files and dependencies over hints.
+3. Set `updatedAt` at the top of the file to today's date.
+4. Run `bun run check`. The tests reject duplicate ids or URLs, links that are not https and malformed signals.
+5. Open a pull request.
+
+Working with an agent? The repository includes an `add-source` skill with these steps. Ask it to "add Fly.io to Context Atlas".
+
+## Preview your change
+
+```bash
+bun install
+bun dev
+```
+
+The site runs at `http://localhost:3000` and reloads when you edit the catalog. Check your topic with `curl -s localhost:3000/llms/<id>.txt` and `curl -s 'localhost:3000/api/search?q=<name>'`.
+
+## Add or change a docs page
+
+The docs are MDX files in `packages/core/docs/`. A new page is one new file:
+
+```mdx
+---
+title: My page
+description: One sentence for search results, link previews and llms.txt.
+section: Reference
+order: 130
+updatedAt: 2026-10-23
+---
+
+Write Markdown here. Link other pages as [MCP server](/docs/mcp).
+```
+
+- `section` groups pages in the sidebar; sections appear in the order of their first page.
+- `order` sorts pages, lowest first.
+- `updatedAt` is the date of the last change, used in the sitemap. Bump it whenever you edit the page.
+- The file name is the URL: `my-page.mdx` becomes `/docs/my-page` and `/docs/my-page.md`, and is added to the sidebar, `/llms.txt`, `/llms-full.txt` and the sitemap.
+- Write absolute links to the site as `https://contextatlas.dev/…`; they follow the server's `SITE_URL`.
+- Text in curly braces and angle brackets is read as code by MDX. Put it in backticks.
+
+Run `bun run check`: it fails on missing or invalid frontmatter and on links to docs pages that do not exist.

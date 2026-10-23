@@ -20,30 +20,71 @@ function setupThemeToggle() {
   }
 }
 
+/**
+ * Copies `text()` on click and reports "copied" or "failed", then "idle" after a moment. Shared by the
+ * copy buttons on /agent and the code blocks in the docs.
+ */
+function copyOnClick(
+  button: HTMLButtonElement,
+  text: () => string,
+  show: (state: "copied" | "failed" | "idle") => void,
+) {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  button.addEventListener("click", async () => {
+    clearTimeout(timer);
+    try {
+      await navigator.clipboard.writeText(text());
+      show("copied");
+    } catch {
+      show("failed");
+    }
+    timer = setTimeout(() => show("idle"), 2400);
+  });
+}
+
+const clipboardBlocked = "Your browser blocked the clipboard. Select the text and copy it manually.";
+
 function setupCopyButtons() {
   for (const button of $$<HTMLButtonElement>("[data-copy]")) {
     const source = $<HTMLElement>(`[data-copy-source="${button.dataset.copy}"]`);
     const status = button.parentElement?.querySelector<HTMLElement>("[data-copy-status]");
     const label = $<HTMLElement>("[data-copy-label]", button);
-    let timer: ReturnType<typeof setTimeout> | undefined;
+    copyOnClick(
+      button,
+      () => source?.textContent ?? "",
+      (state) => {
+        const copied = state === "copied";
+        if (label) label.textContent = copied ? "Copied" : (button.dataset.label ?? "");
+        $("[data-icon=copy]", button)?.classList.toggle("hidden", copied);
+        $("[data-icon=check]", button)?.classList.toggle("hidden", !copied);
+        if (status)
+          status.textContent = copied ? "Paste it into your agent's chat." : state === "failed" ? clipboardBlocked : "";
+      },
+    );
+  }
+}
 
-    function show(copied: boolean, message: string) {
-      if (label) label.textContent = copied ? "Copied" : (button.dataset.label ?? "");
-      $("[data-icon=copy]", button)?.classList.toggle("hidden", copied);
-      $("[data-icon=check]", button)?.classList.toggle("hidden", !copied);
-      if (status) status.textContent = message;
-    }
-
-    button.addEventListener("click", async () => {
-      clearTimeout(timer);
-      try {
-        await navigator.clipboard.writeText(source?.textContent ?? "");
-        show(true, "Paste it into your agent's chat.");
-      } catch {
-        show(false, "Your browser blocked the clipboard. Select the text and copy it manually.");
-      }
-      timer = setTimeout(() => show(false, ""), 2400);
-    });
+/** A copy button on every code block in the docs. */
+function setupDocCodeBlocks() {
+  for (const pre of $$<HTMLPreElement>("[data-doc] pre")) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = "Copy";
+    button.className =
+      "absolute right-2 top-2 rounded-full border border-contour bg-paper px-3 py-0.5 font-sans text-sm text-ink-soft hover:text-ink";
+    copyOnClick(
+      button,
+      () => pre.textContent?.trimEnd() ?? "",
+      (state) => {
+        button.textContent = state === "copied" ? "Copied" : "Copy";
+        button.title = state === "failed" ? clipboardBlocked : "";
+      },
+    );
+    const wrapper = document.createElement("div");
+    wrapper.className = "relative";
+    pre.classList.add("pt-12");
+    pre.replaceWith(wrapper);
+    wrapper.append(pre, button);
   }
 }
 
@@ -149,5 +190,6 @@ function setupSourceBrowser() {
 
 setupThemeToggle();
 setupCopyButtons();
+setupDocCodeBlocks();
 setupPromptPicker();
 setupSourceBrowser();

@@ -1,0 +1,48 @@
+---
+title: Give it to your agent
+description: Three ways to hand content from Context Atlas to a coding agent - a prompt, a link or Markdown - and when to use each.
+section: The website
+order: 90
+updatedAt: 2026-10-23
+---
+
+## The prompt from /agent
+
+[/agent](/agent) has one sentence to paste into Claude Code, Codex, Cursor or any agent with web access. Pick the mode first:
+
+- **I have a project:** run it inside your repository. The agent detects the stack, tells you what it found, then loads the matching sources.
+- **I'm starting something new:** describe what you want to build. The agent proposes a stack, explains the trade-offs and sets it up once you agree.
+
+The prompt only points to [/llms.txt](/llms.txt). The real instructions live there, so they stay current without you changing the prompt.
+
+```text
+Read https://contextatlas.dev/llms.txt and follow its instructions for an existing project: detect the stack of this repository, tell me what you found, then load the matching sources and follow their best practices.
+```
+
+## Links
+
+Agents fetch plain-text URLs reliably. Paste a link into the chat, or put it in your project's `AGENTS.md` or `CLAUDE.md` so every session sees it.
+
+| To give the agent… | Paste |
+| --- | --- |
+| The whole catalog with instructions | `https://contextatlas.dev/llms.txt` |
+| The sources of one tool | `https://contextatlas.dev/llms/<id>.txt`, such as `https://contextatlas.dev/llms/stripe.txt` |
+| The catalog and all docs at once | `https://contextatlas.dev/llms-full.txt` |
+| One docs page | The page URL with `.md`, such as `https://contextatlas.dev/docs/mcp.md` |
+| Structured data for a script | `https://contextatlas.dev/atlas.json` or the [JSON API](/docs/api) |
+
+Prefer the topic files over the whole catalog when you know your stack. They are small and leave room in the context for the vendor docs themselves.
+
+A line for `AGENTS.md`:
+
+```markdown
+Before working with a tool from our stack, fetch its sources from https://contextatlas.dev/llms/<id>.txt (ids: nextjs, drizzle, vercel) and follow them.
+```
+
+## Markdown
+
+Every docs page has a Markdown version: add `.md` to its URL, or use the link at the bottom of the page. Every docs page also announces it with `<link rel="alternate" type="text/markdown">`, so agents that read a page's head find it on their own.
+
+## MCP instead
+
+If your agent supports MCP, connecting the [MCP server](/docs/mcp) is usually better than links: the agent searches and fetches only what it needs, without you choosing files.

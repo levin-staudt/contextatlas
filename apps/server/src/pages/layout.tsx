@@ -10,9 +10,24 @@ const themeScript = `(function(){try{var t=localStorage.getItem("theme");if(t!==
 export const defaultDescription =
   "Find a tech stack, or the right agent sources for the one you have: llms.txt files, docs, MCP servers, agent skills and CLIs.";
 
-type Props = { title: string; description?: string; path: string; children: Child };
+type Props = {
+  title: string;
+  description?: string;
+  path: string;
+  /** The same page as Markdown, announced as an alternate for agents. */
+  markdownPath?: string;
+  ogType?: "website" | "article";
+  children: Child;
+};
 
-export function Layout({ title, description = defaultDescription, path, children }: Props) {
+export function Layout({
+  title,
+  description = defaultDescription,
+  path,
+  markdownPath,
+  ogType = "website",
+  children,
+}: Props) {
   return (
     <html lang="en">
       <head>
@@ -21,13 +36,15 @@ export function Layout({ title, description = defaultDescription, path, children
         <title>{title}</title>
         <meta name="description" content={description} />
         <link rel="canonical" href={`${siteUrl}${path}`} />
+        {markdownPath && <link rel="alternate" type="text/markdown" href={markdownPath} />}
         <link rel="alternate" type="text/plain" href="/llms.txt" />
         <link rel="alternate" type="application/json" href="/atlas.json" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <meta property="og:title" content={title} />
         <meta property="og:description" content={description} />
         <meta property="og:url" content={`${siteUrl}${path}`} />
-        <meta property="og:type" content="website" />
+        <meta property="og:type" content={ogType} />
+        <meta property="og:site_name" content="Context Atlas" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
         <link
@@ -47,6 +64,9 @@ export function Layout({ title, description = defaultDescription, path, children
           <nav class="flex shrink-0 items-center gap-1 font-sans sm:gap-4 sm:text-lg">
             <a href="/#sources" class="hidden px-1 hover:underline sm:inline">
               Sources
+            </a>
+            <a href="/docs" class="px-2 hover:underline sm:px-1">
+              Docs
             </a>
             <a
               href="/agent"
@@ -68,7 +88,11 @@ export function Layout({ title, description = defaultDescription, path, children
         {children}
         <footer class="mx-auto mt-24 max-w-7xl border-t-2 border-ink px-4 py-8 font-sans text-ink-soft sm:px-8">
           <p>
-            Context Atlas collects links only; every source belongs to its vendor. Missing something?{" "}
+            Context Atlas collects links only; every source belongs to its vendor.{" "}
+            <a href="/docs" class="text-ink underline">
+              Read the docs
+            </a>
+            . Missing something?{" "}
             <a href={repoUrl} class="text-ink underline">
               Add it on GitHub
             </a>
