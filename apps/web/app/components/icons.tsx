@@ -1,4 +1,5 @@
 import type { SourceKind } from "@contextatlas/core";
+import type { Ref } from "react";
 
 /** Atlas kneeling under the globe: a graticule sphere carried on raised arms. */
 export function AtlasMark({ className }: { className?: string }) {
@@ -34,9 +35,16 @@ const parallels = [-60, -30, 30, 60];
 const radius = 200;
 
 /** Large decorative graticule that draws itself once on load. */
-export function Globe({ className }: { className?: string }) {
+export function Globe({ className, ref }: { className?: string; ref?: Ref<SVGSVGElement> }) {
   return (
-    <svg viewBox="-210 -210 420 420" className={className} aria-hidden="true" fill="none" stroke="currentColor">
+    <svg
+      ref={ref}
+      viewBox="-210 -210 420 420"
+      className={className}
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+    >
       <circle className="chart-line" pathLength={1} r={radius} strokeWidth="2" />
       <path className="chart-line" pathLength={1} d={`M0 ${-radius}V${radius}`} strokeWidth="1.2" />
       {meridians.map((k, i) => (
