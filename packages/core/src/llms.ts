@@ -84,11 +84,27 @@ export function withFrontmatter(meta: PageMeta, body: string) {
   return `---\n${lines.join("\n")}\n---\n\n${body}`;
 }
 
+/**
+ * The requested path as it may appear in a 404: percent-encoded again and shortened, so a crafted URL
+ * cannot break out of the code span and put its own text (instructions for agents) on this domain.
+ */
+function shownPath(path: string) {
+  let encoded: string;
+  try {
+    // The router leaves some escapes such as %23 in the path; they stay as they are.
+    encoded = encodeURI(path).replace(/%25([0-9A-Fa-f]{2})/g, "%$1");
+  } catch {
+    // A lone surrogate cannot be encoded; show nothing of it rather than the raw text.
+    return "this path";
+  }
+  return `\`${encoded.length > 200 ? `${encoded.slice(0, 200)}…` : encoded}\``;
+}
+
 /** The body of a 404 for agents that asked for Markdown. */
 export function buildNotFoundMarkdown(path: string) {
   return `# Not found
 
-There is nothing at \`${path}\` on Context Atlas.
+There is nothing at ${shownPath(path)} on Context Atlas.
 
 - Whole catalog and instructions for agents: ${llmsUrl}
 - Every page and file: ${siteUrl}/sitemap.xml
