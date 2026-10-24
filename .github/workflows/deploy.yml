@@ -99,7 +99,9 @@ jobs:
           curl -fsS -X POST "$SITE_URL/mcp" -H 'content-type: application/json' -H 'accept: application/json, text/event-stream' \
             -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"search","arguments":{"query":"vercel"}}}' | grep -q vercel
           curl -fsS "$SITE_URL/topics/vercel" | grep -q '<link rel="canonical"'
-          curl -fsS -H 'accept: text/markdown' "$SITE_URL/" | head -1 | grep -q "# Context Atlas"
+          # Markdown copies open with frontmatter, then the page itself.
+          curl -fsS -H 'accept: text/markdown' "$SITE_URL/" | grep -qx 'title: "Context Atlas"'
+          curl -fsS -H 'accept: text/markdown' "$SITE_URL/" | grep -qx "# Context Atlas"
           curl -fsS "$SITE_URL/openapi.json" | grep -q '"openapi"'
           curl -fsS "$SITE_URL/.well-known/mcp/server-card.json" | grep -q get_topic
 
