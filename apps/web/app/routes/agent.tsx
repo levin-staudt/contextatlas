@@ -10,6 +10,7 @@ export function loader({ context }: Route.LoaderArgs) {
   return {
     siteUrl: site.siteUrl,
     repoUrl: site.repoUrl,
+    profiles: site.profiles,
     url: `${site.siteUrl}/agent`,
     markdownPath: site.markdownPath("/agent"),
     prompts: site.prompts,
@@ -24,7 +25,7 @@ export const shouldRevalidate = () => false;
 
 export function meta({ loaderData }: Route.MetaArgs) {
   if (!loaderData) return [];
-  const { siteUrl, repoUrl, url, markdownPath } = loaderData;
+  const { siteUrl, profiles, url, markdownPath } = loaderData;
   const title = "Agent prompt · Context Atlas";
   const description =
     "One sentence for Claude Code, Codex or Cursor that hands your agent the right llms.txt, docs and MCP servers for your stack.";
@@ -35,7 +36,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
     url,
     markdownPath,
     jsonLd: [
-      ld.organization(siteUrl, repoUrl),
+      ld.organization(siteUrl, profiles),
       {
         "@type": "WebPage",
         "@id": url,

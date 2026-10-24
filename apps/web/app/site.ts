@@ -37,6 +37,8 @@ export type SiteData = {
   prompts: { existing: string; new: string; ideaPlaceholder: string };
   siteUrl: string;
   repoUrl: string;
+  /** Where Context Atlas is listed besides this site (repo, MCP Registry, Glama): JSON-LD `sameAs`. */
+  profiles: string[];
   llmsUrl: string;
   mcpUrl: string;
   openApiUrl: string;

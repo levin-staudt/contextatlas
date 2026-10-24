@@ -28,6 +28,7 @@ export function loader({ params, context, url }: Route.LoaderArgs) {
     },
     siteUrl: site.siteUrl,
     repoUrl: site.repoUrl,
+    profiles: site.profiles,
     url: `${site.siteUrl}${page.path}`,
     editUrl: `${site.repoUrl}/blob/main/packages/core/docs/${page.slug}.mdx`,
     html: content.html,
@@ -40,7 +41,7 @@ export function loader({ params, context, url }: Route.LoaderArgs) {
 
 export function meta({ loaderData }: Route.MetaArgs) {
   if (!loaderData) return [];
-  const { page, url, siteUrl, repoUrl } = loaderData;
+  const { page, url, siteUrl, profiles } = loaderData;
   const title = page.isHome ? "Docs · Context Atlas" : `${page.title} · Context Atlas docs`;
   const docsUrl = `${siteUrl}/docs`;
   return pageMeta({
@@ -51,7 +52,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
     markdownPath: page.markdownPath,
     ogType: "article",
     jsonLd: [
-      ld.organization(siteUrl, repoUrl),
+      ld.organization(siteUrl, profiles),
       {
         "@type": "TechArticle",
         "@id": url,

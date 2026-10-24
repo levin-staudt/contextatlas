@@ -25,6 +25,7 @@ export function loader({ context }: Route.LoaderArgs) {
   return {
     siteUrl: site.siteUrl,
     repoUrl: site.repoUrl,
+    profiles: site.profiles,
     url: `${site.siteUrl}/`,
     markdownPath: site.markdownPath("/"),
     regions,
@@ -39,14 +40,14 @@ export const shouldRevalidate = () => false;
 
 export function meta({ loaderData }: Route.MetaArgs) {
   if (!loaderData) return [];
-  const { siteUrl, repoUrl, url, markdownPath, regions, topicCount } = loaderData;
+  const { siteUrl, profiles, url, markdownPath, regions, topicCount } = loaderData;
   return pageMeta({
     title: "Context Atlas: llms.txt, MCP servers and agent docs for your tech stack",
     siteUrl,
     url,
     markdownPath,
     jsonLd: [
-      ld.organization(siteUrl, repoUrl),
+      ld.organization(siteUrl, profiles),
       ld.website(siteUrl, defaultDescription),
       {
         "@type": "CollectionPage",

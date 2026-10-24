@@ -8,10 +8,12 @@ import {
   type Db,
   flattenTopics,
   getCatalog,
+  glamaUrl,
   ideaPlaceholder,
   kinds,
   llmsUrl,
   loadDocs,
+  mcpRegistryUrl,
   mcpUrl,
   openApiUrl,
   relatedTopics,
@@ -19,7 +21,9 @@ import {
   siteUrl,
   topicPagePath,
   topicPageUrl,
+  topicSummary,
   topicUrl,
+  withFrontmatter,
 } from "@contextatlas/core";
 import type { SiteData } from "@contextatlas/web/site";
 import { compileDocs } from "./docs";
@@ -33,6 +37,11 @@ export type Snapshot = ReturnType<typeof loadSnapshot>;
  * The docs come from the MDX files next to the binary and are compiled once here too. `site` is what
  * the React pages (apps/web) read as load context.
  */
+const homeDescription =
+  "Find a tech stack, or the right agent sources for the one you have: llms.txt files, docs, MCP servers, agent skills and CLIs.";
+const agentDescription =
+  "One sentence for Claude Code, Codex or Cursor that hands your agent the right llms.txt, docs and MCP servers for your stack.";
+
 /** A page's Markdown copy: the page path, the .md URL and the Markdown. */
 type MarkdownPage = { path: string; url: string; body: string };
 
@@ -54,6 +63,7 @@ export function loadSnapshot(db: Db) {
     prompts: { existing: agentPrompts.existing, new: agentPrompts.new(""), ideaPlaceholder },
     siteUrl,
     repoUrl,
+    profiles: [repoUrl, mcpRegistryUrl, glamaUrl],
     llmsUrl,
     mcpUrl,
     openApiUrl,
@@ -62,18 +72,30 @@ export function loadSnapshot(db: Db) {
   };
   const llmsTxt = buildLlmsTxt(catalog, docs.pages);
   // Every page as Markdown, by page path: what `Accept: text/markdown` and the .md URLs return, and the
-  // .md URL itself. The home page is the catalog itself, so its Markdown is llms.txt.
+  // .md URL itself. The home page is the catalog itself, so its Markdown is llms.txt. Each copy opens
+  // with frontmatter: title, description, the canonical page URL and when it last changed.
+  const page = (path: string, url: string, title: string, description: string, updatedAt: string, body: string) =>
+    [
+      path,
+      { path, url, body: withFrontmatter({ title, description, canonical: `${siteUrl}${path}`, updatedAt }, body) },
+    ] as const;
   const markdown = new Map<string, MarkdownPage>([
-    ["/", { path: "/", url: "/index.md", body: llmsTxt }],
-    ["/agent", { path: "/agent", url: "/agent.md", body: buildAgentMarkdown() }],
-    ...docs.pages.map((page): [string, MarkdownPage] => [
-      page.path,
-      { path: page.path, url: page.markdownPath, body: buildDocMarkdown(page) },
-    ]),
-    ...topics.map((topic): [string, MarkdownPage] => {
+    page("/", "/index.md", "Context Atlas", homeDescription, catalog.updatedAt, llmsTxt),
+    page(
+      "/agent",
+      "/agent.md",
+      "Agent prompt · Context Atlas",
+      agentDescription,
+      catalog.updatedAt,
+      buildAgentMarkdown(),
+    ),
+    ...docs.pages.map((doc) =>
+      page(doc.path, doc.markdownPath, doc.title, doc.description, doc.updatedAt, buildDocMarkdown(doc)),
+    ),
+    ...topics.map((topic) => {
       const path = topicPagePath(topic.id);
       const body = buildTopicMarkdown(topic, catalog.updatedAt, related.get(topic.id) ?? []);
-      return [path, { path, url: `${path}.md`, body }];
+      return page(path, `${path}.md`, `${topic.name} · Context Atlas`, topicSummary(topic), catalog.updatedAt, body);
     }),
   ]);
   const markdownByUrl = new Map([...markdown.values()].map((page) => [page.url, page]));

@@ -74,13 +74,15 @@ export const ld = {
   websiteId: (siteUrl: string) => `${siteUrl}/#website`,
   organizationId: (siteUrl: string) => `${siteUrl}/#organization`,
 
-  organization: (siteUrl: string, repoUrl: string): JsonLd => ({
+  organization: (siteUrl: string, profiles: string[]): JsonLd => ({
     "@type": "Organization",
     "@id": ld.organizationId(siteUrl),
     name: "Context Atlas",
+    description:
+      "An open catalog of the sources vendors publish for coding agents: llms.txt files, docs, MCP servers, skills, rules and CLIs.",
     url: `${siteUrl}/`,
     logo: `${siteUrl}/favicon.svg`,
-    sameAs: [repoUrl],
+    sameAs: profiles,
   }),
 
   website: (siteUrl: string, description: string): JsonLd => ({
