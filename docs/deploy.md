@@ -7,7 +7,8 @@ GitHub Actions ──ssh via cloudflared + Access service token──▶ ssh.con
 Browser / agent ──▶ Cloudflare (cache) ──▶ contextatlas.dev ──── Tunnel ─────────────┤
                                                                                       ▼
                                        VPS: cloudflared.service ─▶ contextatlas.service (127.0.0.1:3000)
-                                                                   └─ /var/lib/contextatlas/atlas.db
+                                                                   ├─ /var/lib/contextatlas/atlas.db  (rebuilt from the catalog on every start)
+                                                                   └─ /var/lib/contextatlas/admin.db  (write MCP: tokens, review queue, audit log)
 ```
 
 Every step below runs from the harness. Day to day you only need `bun run deploy` (or a push to `main`).
@@ -24,8 +25,16 @@ Every step below runs from the harness. Day to day you only need `bun run deploy
 | Live check | `curl -fsS https://contextatlas.dev/healthz` |
 | Ping search engines | `bun run indexnow` (IndexNow: Bing, Yandex and others; the deploy does this) |
 | Publish the MCP server | `bun run mcp:publish` (official MCP Registry, see [Discoverability](#discoverability)) |
+| Write MCP tokens | `scripts/admin.sh token create <name>` (prints the token once), `token list`, `token revoke <id>` |
+| Review submissions | `scripts/admin.sh submissions`, `show <id>`, `approve <id> [note]`, `reject <id> [note]`, `audit` |
 
-A deploy builds and checks on GitHub, uploads to `/opt/contextatlas/releases/<sha>`, and `contextatlas-activate` switches the `current` symlink and restarts the service. `ExecStartPre` runs `contextatlas seed`, which builds a fresh database file from `packages/core/src/catalog.ts` with the release's own migrations and swaps it in before the new binary serves. If the restart fails or `/healthz` does not answer within 30 seconds, it rolls back to the previous release; since the old release rebuilds the database too, the schema rolls back with it. The last five releases are kept. Then the workflow purges the Cloudflare cache and smoke-tests the site, the API and the MCP endpoint.
+A deploy builds and checks on GitHub, uploads to `/opt/contextatlas/releases/<sha>`, and `contextatlas-activate` switches the `current` symlink and restarts the service. `ExecStartPre` runs `contextatlas seed`, which builds a fresh database file from `packages/core/src/catalog.ts` with the release's own migrations and swaps it in before the new binary serves. If the restart fails or `/healthz` does not answer within 30 seconds, it rolls back to the previous release; since the old release rebuilds the database too, the schema rolls back with it. That holds for `atlas.db` only: `admin.db` (write MCP) is migrated forward and never rebuilt, so an older release must still work on it. Keep migrations in `packages/core/drizzle-admin` additive (new tables, new nullable columns); never rename or drop a column in the same release that starts using the change. The last five releases are kept. Then the workflow purges the Cloudflare cache and smoke-tests the site, the API and the MCP endpoint.
+
+### Write MCP
+
+`/mcp/admin` (issue #19) writes only to `admin.db`, never to the catalog database. `scripts/admin.sh` runs `contextatlas admin` on the VPS as the service user, through `/usr/local/bin/contextatlas-admin` and a sudoers rule from `deploy/bootstrap.sh`; rerun the bootstrap once (step 4) on a VPS set up before the write MCP existed. Locally, `bun run admin <same arguments>` works on `data/admin.db`, which `bun dev` serves at `/mcp/admin`.
+
+To take a submission live: `scripts/admin.sh show <id>`, add the entry to `packages/core/src/catalog.ts` in a pull request, then `scripts/admin.sh approve <id> "<PR link>"`. Unlike `atlas.db`, `admin.db` cannot be rebuilt; it needs the Litestream backup planned in #15. Write calls per token, refused ones included, are limited by `ADMIN_RATE_LIMIT` (default 30 per hour; a value that is not a positive integer falls back to 30). If `admin.db` cannot be opened, the server logs the error and serves everything else, with `/mcp/admin` answering 404.
 
 ## First-time setup
 

@@ -1,21 +1,99 @@
 ---
 title: Submitting data
-description: The planned write access to the MCP server for adding and updating catalog entries, with tokens and a review queue.
+description: The write MCP at /mcp/admin for adding and fixing catalog entries, with a bearer token and a review queue.
 section: MCP server
 order: 60
-updatedAt: 2026-10-23
+updatedAt: 2026-10-24
 ---
 
-> **Planned.** Write access does not exist yet; it is tracked in [issue #19](https://github.com/levin-staudt/contextatlas/issues/19). Until it ships, add sources with a pull request as described in [Contributing](/docs/contributing).
+The public server at `/mcp` is read-only and stays that way: no login, no key. Additions and fixes go through a second, secured MCP server at `https://contextatlas.dev/mcp/admin`. Nothing you submit goes live directly: every submission lands in a review queue, and a maintainer approves or rejects it.
 
-The public server at `/mcp` is read-only and stays that way: no login, no key. Adding data will go through a separate, secured endpoint.
+## Get a token
 
-## How it will work
+Tokens are issued by the maintainer. Ask for one in a [GitHub issue](https://github.com/levin-staudt/contextatlas/issues) and say what you want to submit. A token looks like `ca_` followed by 43 characters. It is shown once; the server stores only its SHA-256 hash, so a lost token cannot be recovered, only replaced.
 
-- **Separate endpoint.** A second MCP server, such as `/mcp/admin`, next to the public one.
-- **Token.** Every request carries a bearer token. Tokens are issued and revoked by the maintainers and stored only as a hash. Requests without a valid token are rejected with 401 or 403.
-- **Write tools.** Tools such as `add_topic`, `update_topic`, `add_source` and `propose_change`. Input is checked against the same schema as the catalog itself, so a malformed entry is rejected before review.
-- **Review first.** New entries land in a review queue and go live only after a maintainer accepts them.
-- **Audit log and rate limit.** Every change is recorded with token and time, and each token has a rate limit.
+Keep the token in an environment variable, not in a file you commit:
 
-These docs will describe how to request a token, connect the endpoint and follow a submission through review once it is available.
+```sh
+export CONTEXTATLAS_TOKEN=ca_...
+```
+
+## Connect
+
+Every request needs the header `Authorization: Bearer <token>`. The transport is Streamable HTTP, stateless, like the public server.
+
+**Claude Code**
+
+```sh
+claude mcp add --transport http contextatlas-admin https://contextatlas.dev/mcp/admin \
+  --header "Authorization: Bearer $CONTEXTATLAS_TOKEN"
+```
+
+**Codex** (`~/.codex/config.toml`)
+
+```toml
+[mcp_servers.contextatlas-admin]
+url = "https://contextatlas.dev/mcp/admin"
+bearer_token_env_var = "CONTEXTATLAS_TOKEN"
+```
+
+**Other clients**: any client that can send a header to a remote MCP server. Without MCP, call it with `curl`:
+
+```sh
+curl -s https://contextatlas.dev/mcp/admin \
+  -H "Authorization: Bearer $CONTEXTATLAS_TOKEN" \
+  -H 'content-type: application/json' -H 'accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"list_submissions","arguments":{}}}'
+```
+
+## Tools
+
+The write server also has the read tools `search`, `get_topic` and `list_topics`, so an agent can check the catalog before it submits. Input is checked against the same schema as the catalog itself (lowercase ids, `https` URLs, valid signal patterns), and against the live catalog: a topic that exists already, an unknown topic or region, or a source URL the topic already lists is refused with an `invalid` error before it reaches the queue.
+
+| Tool | Input | Use it to |
+| --- | --- | --- |
+| `add_source` | `topicId`, `source` (`kind`, `title`, `url`), optional `reason` | Add one source to an existing topic |
+| `add_topic` | `region`, `topic` (`id`, `name`, `role`, `signals`, `sources`), optional `reason` | Add a tool that is missing |
+| `update_topic` | `topicId`, `changes` (any of `name`, `role`, `signals`, `sources`), optional `reason` | Fix a topic. Lists replace the current ones |
+| `propose_change` | `message`, optional `topicId` | Anything else, in plain words |
+| `list_submissions` | optional `status`, `limit` | Your submissions, newest first |
+| `get_submission` | `id` | One of your submissions, with the reviewer's note |
+
+Fill in `reason` with evidence, such as the vendor page that links the source. It makes review faster. See [Topics](/docs/topics) for what each source kind and signal type means.
+
+**Example call and answer**
+
+```json
+{
+  "topicId": "vercel",
+  "source": { "kind": "docs", "title": "Vercel CLI reference", "url": "https://vercel.com/docs/cli" },
+  "reason": "Linked from https://vercel.com/docs as the CLI reference."
+}
+```
+
+```json
+{
+  "submission": {
+    "id": 12,
+    "type": "add_source",
+    "topicId": "vercel",
+    "payload": { "topicId": "vercel", "source": { "kind": "docs", "title": "Vercel CLI reference", "url": "https://vercel.com/docs/cli" }, "reason": "Linked from https://vercel.com/docs as the CLI reference." },
+    "status": "pending",
+    "createdAt": "2026-10-24T09:30:00.000Z",
+    "reviewedAt": null,
+    "reviewNote": null
+  },
+  "message": "Queued for review. It goes live after a maintainer approves it; check with get_submission."
+}
+```
+
+## Review
+
+A submission is `pending` until a maintainer reviews it, then `approved` or `rejected`, with an optional note. An approved submission goes live with the next deploy, once it is added to the catalog. Every token creation, revocation, submission and review is recorded in an audit log with the token and the time.
+
+## Errors and limits
+
+- **401**: the header is missing, or the token is wrong or revoked. The response has a `WWW-Authenticate: Bearer` header.
+- **`invalid`**: the submission does not match the schema or the catalog, for example a topic id that is already taken by a topic or a region. The message says what to fix.
+- **`rate_limited`**: each token may call the write tools 30 times per hour, refused calls included. The error has `retryAfter` in seconds.
+- **405**: only `POST` is supported, as on the public server.

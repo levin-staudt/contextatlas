@@ -2,6 +2,7 @@
 //   dist/contextatlas   single binary (`contextatlas seed`, `contextatlas serve`), with the server build of apps/web bundled in
 //   dist/public/        favicon and the hashed browser files of apps/web (build/client)
 //   dist/drizzle/       migrations, applied by `contextatlas seed`
+//   dist/drizzle-admin/ migrations of the admin database (write MCP), applied by `contextatlas serve` and `admin`
 //   dist/docs/          the MDX docs pages, compiled when the server starts
 // Set BUN_TARGET (e.g. bun-linux-arm64) to cross-compile; the default is the current platform.
 import { cpSync, rmSync } from "node:fs";
@@ -36,5 +37,6 @@ run([
 ]);
 cpSync(join(web, "build/client"), join(dist, "public"), { recursive: true });
 cpSync(join(repo, "packages/core/drizzle"), join(dist, "drizzle"), { recursive: true });
+cpSync(join(repo, "packages/core/drizzle-admin"), join(dist, "drizzle-admin"), { recursive: true });
 cpSync(join(repo, "packages/core/docs"), join(dist, "docs"), { recursive: true });
 console.log(`Built ${dist}`);

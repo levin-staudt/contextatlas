@@ -1,3 +1,32 @@
+export {
+  type AdminDb,
+  type AuditEntry,
+  adminMigrationsDir,
+  authenticate,
+  type CatalogLookup,
+  checkSubmission,
+  createRateLimiter,
+  createSubmission,
+  createToken,
+  defaultAdminDatabasePath,
+  getSubmission,
+  hashToken,
+  listAudit,
+  listSubmissions,
+  listTokens,
+  openAdminDatabase,
+  openAdminDatabaseOrWarn,
+  parseSubmission,
+  positiveIntegerSetting,
+  recordInvalidSubmission,
+  reviewSubmission,
+  revokeToken,
+  type Submission,
+  type SubmissionRow,
+  submissionInputs,
+  type Token,
+} from "./admin";
+export { type SubmissionStatus, submissionStatuses, submissionTypes } from "./admin-schema";
 export { catalog, kinds } from "./catalog";
 export { type Db, defaultDatabasePath, isCompiled, migrateDatabase, migrationsDir, openDatabase } from "./db";
 export { buildDocMarkdown, type DocPage, docsDir, docsSections, loadDocs, mapOutsideCode } from "./docs";
@@ -27,6 +56,7 @@ export {
 export { type SearchOptions, type SearchResult, search, toFtsQuery } from "./search";
 export { rebuildDatabaseFile, type SeedResult, seedDatabase } from "./seed";
 export {
+  adminMcpUrl,
   glamaUrl,
   indexNowKey,
   llmsUrl,
@@ -40,3 +70,4 @@ export {
   topicUrl,
 } from "./site";
 export * from "./types";
+export { catalogSchema, regionSchema, signalSchema, sourceSchema, topicSchema } from "./validation";

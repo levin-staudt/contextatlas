@@ -23,6 +23,7 @@
     "og:image": "bun scripts/og-image.ts",
     "deploy:redirect": "bun run --filter @contextatlas/redirect deploy",
     "seed": "bun run --filter @contextatlas/server seed",
+    "admin": "bun --env-file=.env apps/server/src/main.ts admin",
     "globe:land": "bun scripts/globe-land.ts"
   },
   "devDependencies": {

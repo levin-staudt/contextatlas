@@ -7,7 +7,7 @@
     "./format": "./src/format.ts"
   },
   "scripts": {
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate && drizzle-kit generate --config drizzle.admin.config.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.4",

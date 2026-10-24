@@ -11,6 +11,8 @@ User=contextatlas
 Group=contextatlas
 WorkingDirectory=/opt/contextatlas/current
 Environment=DATABASE_PATH=/var/lib/contextatlas/atlas.db
+# Tokens, review queue and audit log of the write MCP. Not rebuilt by the seed; back it up.
+Environment=ADMIN_DATABASE_PATH=/var/lib/contextatlas/admin.db
 Environment=HOST=127.0.0.1
 Environment=PORT=3000
 Environment=NO_COLOR=1
