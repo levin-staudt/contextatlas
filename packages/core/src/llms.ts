@@ -75,6 +75,15 @@ Other clients: ${siteUrl}/docs/mcp.md
 `;
 }
 
+/** What a page's Markdown copy opens with, so agents get its metadata without parsing the text. */
+export type PageMeta = { title: string; description: string; canonical: string; updatedAt: string };
+
+/** Prepends a YAML frontmatter block. JSON strings are valid YAML, so every value is quoted that way. */
+export function withFrontmatter(meta: PageMeta, body: string) {
+  const lines = Object.entries(meta).map(([key, value]) => `${key}: ${JSON.stringify(value)}`);
+  return `---\n${lines.join("\n")}\n---\n\n${body}`;
+}
+
 /** The body of a 404 for agents that asked for Markdown. */
 export function buildNotFoundMarkdown(path: string) {
   return `# Not found

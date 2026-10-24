@@ -3,7 +3,7 @@ title: MCP server
 description: What the Context Atlas MCP server does, and how to connect it to Claude Code, Codex, Cursor, VS Code and other clients.
 section: MCP server
 order: 20
-updatedAt: 2026-10-23
+updatedAt: 2026-10-24
 ---
 
 ## What it does
@@ -31,7 +31,8 @@ With it, an agent can work out which llms.txt, docs, MCP servers, skills and CLI
 | Auth | None |
 | Tools | `search`, `get_topic`, `list_topics`, all read-only |
 | Server card | [`/.well-known/mcp/server-card.json`](/.well-known/mcp/server-card.json) |
-| MCP Registry name | `io.github.levin-staudt/contextatlas` |
+| MCP Registry | [`io.github.levin-staudt/contextatlas`](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.levin-staudt/contextatlas) |
+| Glama | [Context Atlas connector](https://glama.ai/mcp/connectors/io.github.levin-staudt/contextatlas) |
 
 Clients that still use the older SSE transport cannot connect. Use the HTTP or "streamable-http" type in their config, or the [stdio bridge](#clients-with-stdio-only).
 

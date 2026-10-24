@@ -1,5 +1,4 @@
 import {
-  buildDocMarkdown,
   buildNotFoundMarkdown,
   buildTopicTxt,
   type Db,
@@ -104,17 +103,6 @@ export function createApp(db: Db, { log = false, web, mode = "production" }: Opt
 
   app.all("/api/*", (c) => c.json({ error: "Not found" }, 404, { "cache-control": noStore }));
 
-  // Every docs page is Markdown at /docs/<slug>.md for agents; the HTML page is rendered by apps/web.
-  app.get("/docs/:file{.+\\.md}", (c) => {
-    const page = snapshot.docs.page(c.req.param("file").slice(0, -".md".length));
-    if (!page) return c.body("Not found\n", 404, { ...text, "cache-control": noStore });
-    return c.body(buildDocMarkdown(page), 200, {
-      ...markdown,
-      "cache-control": agentCacheControl,
-      link: `<${siteUrl}${page.path}>; rel="canonical"`,
-    });
-  });
-
   app.get("/llms.txt", (c) => c.body(snapshot.llmsTxt, 200, { ...text, "cache-control": agentCacheControl }));
   app.get("/llms-full.txt", (c) => c.body(snapshot.llmsFullTxt, 200, { ...text, "cache-control": agentCacheControl }));
 
@@ -153,8 +141,8 @@ export function createApp(db: Db, { log = false, web, mode = "production" }: Opt
   // Proves the IndexNow pings (scripts/indexnow.ts) come from the owner of the domain.
   app.get(`/${indexNowKey}.txt`, (c) => c.body(indexNowKey, 200, { ...text, "cache-control": agentCacheControl }));
 
-  // Markdown copies of the pages for people: /index.md (the home page), /agent.md, /topics/<id>.md.
-  // Docs pages have their own route above; the same Markdown also answers `Accept: text/markdown`.
+  // Markdown copies of the pages for people: /index.md (the home page), /agent.md, /docs/<slug>.md and
+  // /topics/<id>.md. The same Markdown also answers `Accept: text/markdown`.
   // An unknown .md is a Markdown 404 with pointers, never an HTML page.
   app.get("/:file{.+\\.md}", (c) => {
     const page = snapshot.markdownFile(c.req.path);

@@ -12,6 +12,10 @@ export const openApiUrl = `${siteUrl}/openapi.json`;
 /** The name of the remote MCP server in the official MCP Registry (server.json in the repo root). */
 export const mcpRegistryName = "io.github.levin-staudt/contextatlas";
 
+/** The server's entry in the MCP Registry and the directory that imports it, for links back from the site. */
+export const mcpRegistryUrl = `https://registry.modelcontextprotocol.io/v0.1/servers?search=${mcpRegistryName}`;
+export const glamaUrl = `https://glama.ai/mcp/connectors/${mcpRegistryName}`;
+
 /** A topic's small llms.txt for agents. */
 export function topicUrl(topicId: string) {
   return `${siteUrl}/llms/${topicId}.txt`;

@@ -1,6 +1,7 @@
 import {
   type Db,
   mcpRegistryName,
+  mcpRegistryUrl,
   mcpUrl,
   repoUrl,
   search,
@@ -65,7 +66,12 @@ export function createMcpServer(db: Db, snapshot: Snapshot) {
     ({ id }) => {
       const topic = snapshot.topic(id);
       if (!topic) {
-        return { ...json({ error: `Unknown topic "${id}". Use search or list_topics to find ids.` }), isError: true };
+        return {
+          ...json({
+            error: { code: "not_found", message: `Unknown topic "${id}". Use search or list_topics to find ids.` },
+          }),
+          isError: true,
+        };
       }
       return json({
         updatedAt: snapshot.updatedAt,
@@ -131,10 +137,13 @@ export async function buildServerCard(db: Db, snapshot: Snapshot) {
       $schema: "https://static.modelcontextprotocol.io/schemas/mcp-server-card/v1.json",
       version: "1.0",
       protocolVersion: LATEST_PROTOCOL_VERSION,
+      name: serverInfo.name,
+      title: serverInfo.title,
       serverInfo,
       description:
         "Search the catalog of sources vendors publish for coding agents: llms.txt, docs, MCP servers, skills, rules and CLIs.",
       registryName: mcpRegistryName,
+      registryUrl: mcpRegistryUrl,
       websiteUrl: siteUrl,
       documentationUrl: `${siteUrl}/docs/mcp`,
       repository: repoUrl,

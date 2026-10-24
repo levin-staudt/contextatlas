@@ -14,6 +14,7 @@ export function loader({ params, context, url }: Route.LoaderArgs) {
   return {
     siteUrl: site.siteUrl,
     repoUrl: site.repoUrl,
+    profiles: site.profiles,
     url: `${site.siteUrl}${topicPagePath(topic.id)}`,
     markdownPath: site.markdownPath(topicPagePath(topic.id)),
     updatedAt: site.catalog.updatedAt,
@@ -41,7 +42,7 @@ export const shouldRevalidate = ({ currentParams, nextParams }: ShouldRevalidate
 
 export function meta({ loaderData }: Route.MetaArgs) {
   if (!loaderData) return [];
-  const { topic, url, siteUrl, repoUrl, description, updatedAt, markdownPath } = loaderData;
+  const { topic, url, siteUrl, profiles, description, updatedAt, markdownPath } = loaderData;
   const title = `${topic.name} for coding agents: llms.txt, MCP and docs · Context Atlas`;
   return pageMeta({
     title,
@@ -50,7 +51,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
     url,
     markdownPath,
     jsonLd: [
-      ld.organization(siteUrl, repoUrl),
+      ld.organization(siteUrl, profiles),
       {
         "@type": "WebPage",
         "@id": url,

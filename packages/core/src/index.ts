@@ -11,6 +11,8 @@ export {
   buildTopicMarkdown,
   buildTopicTxt,
   ideaPlaceholder,
+  type PageMeta,
+  withFrontmatter,
 } from "./llms";
 export {
   countSources,
@@ -25,9 +27,11 @@ export {
 export { type SearchOptions, type SearchResult, search, toFtsQuery } from "./search";
 export { rebuildDatabaseFile, type SeedResult, seedDatabase } from "./seed";
 export {
+  glamaUrl,
   indexNowKey,
   llmsUrl,
   mcpRegistryName,
+  mcpRegistryUrl,
   mcpUrl,
   openApiUrl,
   repoUrl,

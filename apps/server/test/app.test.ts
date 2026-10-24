@@ -1,11 +1,14 @@
 import { beforeAll, describe, expect, spyOn, test } from "bun:test";
 import {
   catalog,
+  glamaUrl,
   indexNowKey,
   loadDocs,
   mcpRegistryName,
+  mcpRegistryUrl,
   mcpUrl,
   openDatabase,
+  repoUrl,
   seedDatabase,
   siteUrl,
 } from "@contextatlas/core";
@@ -23,6 +26,9 @@ let pages: Promise<AppType> | undefined;
 const pageApp = () => (pages ??= loadWebBuild().then((web) => createApp(db, { web })));
 const topicCount = catalog.regions.reduce((sum, region) => sum + region.topics.length, 0);
 const docCount = loadDocs().length;
+
+/** A Markdown copy without its frontmatter block. */
+const withoutFrontmatter = (text: string) => text.replace(/^---\n[\s\S]*?\n---\n\n/, "");
 
 describe("pages", () => {
   let site: AppType;
@@ -107,14 +113,19 @@ describe("pages", () => {
       const json = html.match(/<script type="application\/ld\+json">(.+?)<\/script>/)?.[1];
       expect(json).toBeDefined();
       const data = JSON.parse(json!.replaceAll("&quot;", '"').replaceAll("&amp;", "&")) as {
-        "@graph": { "@type": string }[];
+        "@graph": { "@type": string; sameAs?: string[]; description?: string }[];
       };
-      return data["@graph"].map((node) => node["@type"]);
+      return data["@graph"];
     };
-    expect(await graph("/")).toEqual(["Organization", "WebSite", "CollectionPage"]);
-    expect(await graph("/agent")).toEqual(["Organization", "WebPage", "BreadcrumbList"]);
-    expect(await graph("/docs/mcp")).toEqual(["Organization", "TechArticle", "BreadcrumbList"]);
-    expect(await graph("/topics/vercel")).toEqual(["Organization", "WebPage", "BreadcrumbList"]);
+    const types = async (path: string) => (await graph(path)).map((node) => node["@type"]);
+    expect(await types("/")).toEqual(["Organization", "WebSite", "CollectionPage"]);
+    expect(await types("/agent")).toEqual(["Organization", "WebPage", "BreadcrumbList"]);
+    expect(await types("/docs/mcp")).toEqual(["Organization", "TechArticle", "BreadcrumbList"]);
+    expect(await types("/topics/vercel")).toEqual(["Organization", "WebPage", "BreadcrumbList"]);
+    // The organization links its listings, so directories and crawlers can tie them back to the site.
+    const [organization] = await graph("/");
+    expect(organization?.description).toBeString();
+    expect(organization?.sameAs).toEqual([repoUrl, mcpRegistryUrl, glamaUrl]);
   });
 
   test("pages answer Accept: text/markdown with Markdown under the same URL", async () => {
@@ -131,7 +142,9 @@ describe("pages", () => {
       expect(res.status).toBe(200);
       expect(res.headers.get("content-type")).toBe("text/markdown; charset=utf-8");
       expect(res.headers.get("vary")?.split(", ")).toContain("Accept");
-      expect(await res.text()).toStartWith(start);
+      const text = await res.text();
+      expect(text).toStartWith(`---\ntitle: `);
+      expect(withoutFrontmatter(text)).toStartWith(start);
     }
     const html = await site.request("/", { headers: { accept: "text/html,application/xhtml+xml,*/*;q=0.8" } });
     expect(html.headers.get("content-type")).toStartWith("text/html");
@@ -224,7 +237,7 @@ describe("docs", () => {
     expect(res.headers.get("access-control-allow-origin")).toBe("*");
     expect(res.headers.get("link")).toBe(`<${siteUrl}/docs/mcp>; rel="canonical"`);
     const body = await res.text();
-    expect(body).toStartWith("# MCP server\n\n> ");
+    expect(withoutFrontmatter(body)).toStartWith("# MCP server\n\n> ");
     expect(body).toContain(`](${siteUrl}/docs/mcp#clients-with-stdio-only)`);
     expect((await site.request("/docs/index.md")).status).toBe(200);
   });
@@ -235,7 +248,7 @@ describe("docs", () => {
       expect(res.status).toBe(404);
       expect(res.headers.get("cache-control")).toBe("no-store");
     }
-    expect((await site.request("/docs/nope.md")).headers.get("content-type")).toStartWith("text/plain");
+    expect((await site.request("/docs/nope.md")).headers.get("content-type")).toStartWith("text/markdown");
   });
 });
 
@@ -287,14 +300,20 @@ describe("agent files", () => {
     const home = await app.request("/index.md");
     expect(home.headers.get("content-type")).toBe("text/markdown; charset=utf-8");
     expect(home.headers.get("link")).toBe(`<${siteUrl}/>; rel="canonical"`);
-    expect(await home.text()).toStartWith("# Context Atlas\n");
+    const homeText = await home.text();
+    expect(homeText).toStartWith(
+      `---\ntitle: "Context Atlas"\ndescription: "Find a tech stack, or the right agent sources for the one you have: llms.txt files, docs, MCP servers, agent skills and CLIs."\ncanonical: "${siteUrl}/"\nupdatedAt: "${catalog.updatedAt}"\n---\n\n# Context Atlas\n`,
+    );
+    const doc = await (await app.request("/docs/mcp.md")).text();
+    expect(doc).toContain(`canonical: "${siteUrl}/docs/mcp"`);
+    expect(doc).toMatch(/^updatedAt: "\d{4}-\d{2}-\d{2}"$/m);
     const agent = await (await app.request("/agent.md")).text();
     expect(agent).toContain(`Read ${siteUrl}/llms.txt`);
     expect(agent).toContain(`claude mcp add --transport http contextatlas ${mcpUrl}`);
     const topic = await app.request("/topics/neon.md");
     expect(topic.headers.get("link")).toBe(`<${siteUrl}/topics/neon>; rel="canonical"`);
     const body = await topic.text();
-    expect(body).toStartWith("# Neon · Context Atlas");
+    expect(withoutFrontmatter(body)).toStartWith("# Neon · Context Atlas");
     expect(body).toContain("Related topics:");
     expect(body).toContain(`(${siteUrl}/topics/supabase)`);
     // An unknown .md is a Markdown 404 with pointers, also when the pages are rendered.
@@ -440,12 +459,15 @@ describe("mcp", () => {
     expect(topic.page).toBe(`${siteUrl}/topics/drizzle`);
     const missing = await rpc("tools/call", { name: "get_topic", arguments: { id: "nope" } });
     expect(missing.result.isError).toBe(true);
+    expect(JSON.parse(missing.result.content[0].text).error.code).toBe("not_found");
   });
 
   test("server card lists the live tools and the endpoint", async () => {
     const res = await app.request("/.well-known/mcp/server-card.json");
     expect(res.status).toBe(200);
     const card = (await res.json()) as any;
+    expect(card.name).toBe("contextatlas");
+    expect(card.registryUrl).toBe(mcpRegistryUrl);
     expect(card.serverInfo).toEqual({ name: "contextatlas", title: "Context Atlas", version });
     expect(card.transport).toEqual({ type: "streamable-http", endpoint: mcpUrl });
     expect(card.authentication.required).toBe(false);
