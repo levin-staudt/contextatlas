@@ -1,5 +1,10 @@
 import type { Signal, SourceKind, Topic } from "./types";
 
+/** A topic's page for people, `/topics/<id>`; the same page as Markdown is `/topics/<id>.md`. */
+export function topicPagePath(topicId: string) {
+  return `/topics/${topicId}`;
+}
+
 /** A signal as one readable phrase, for llms.txt and the search index. */
 export function formatSignal(signal: Signal) {
   switch (signal.type) {

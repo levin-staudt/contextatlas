@@ -55,8 +55,9 @@ const crawlers = [
 const robotsTxt = `# Context Atlas welcomes search engines and AI agents. Start with ${siteUrl}/llms.txt.
 ${crawlers.map((name) => `User-agent: ${name}`).join("\n")}
 Allow: /
-# Route data for client-side navigation; the pages themselves are the indexable URLs.
+# Route data for client-side navigation, with or without a query; the pages are the indexable URLs.
 Disallow: /*.data$
+Disallow: /*.data?
 
 Sitemap: ${siteUrl}/sitemap.xml
 `;
@@ -139,7 +140,11 @@ export function createApp(db: Db, { log = false, web, mode = "production" }: Opt
   let serverCard: ReturnType<typeof buildServerCard> | undefined;
   for (const path of ["/.well-known/mcp/server-card.json", "/.well-known/mcp.json"]) {
     app.get(path, async (c) => {
-      serverCard ??= buildServerCard(db, snapshot);
+      // A failed build is not kept, so the next request tries again.
+      serverCard ??= buildServerCard(db, snapshot).catch((error) => {
+        serverCard = undefined;
+        throw error;
+      });
       c.header("cache-control", agentCacheControl);
       return c.json(await serverCard);
     });
@@ -150,14 +155,14 @@ export function createApp(db: Db, { log = false, web, mode = "production" }: Opt
 
   // Markdown copies of the pages for people: /index.md (the home page), /agent.md, /topics/<id>.md.
   // Docs pages have their own route above; the same Markdown also answers `Accept: text/markdown`.
-  app.get("/:file{.+\\.md}", (c, next) => {
-    const path = c.req.path.slice(0, -".md".length);
-    const body = snapshot.pageMarkdown(path === "/index" ? "/" : path);
-    if (!body) return next();
-    return c.body(body, 200, {
+  // An unknown .md is a Markdown 404 with pointers, never an HTML page.
+  app.get("/:file{.+\\.md}", (c) => {
+    const page = snapshot.markdownFile(c.req.path);
+    if (!page) return c.body(buildNotFoundMarkdown(c.req.path), 404, { ...markdown, "cache-control": noStore });
+    return c.body(page.body, 200, {
       ...markdown,
       "cache-control": agentCacheControl,
-      link: `<${siteUrl}${path === "/index" ? "/" : path}>; rel="canonical"`,
+      link: `<${siteUrl}${page.path}>; rel="canonical"`,
     });
   });
 
@@ -223,11 +228,11 @@ export function createApp(db: Db, { log = false, web, mode = "production" }: Opt
     // Agents that ask for Markdown get the page's Markdown copy, or a Markdown 404 with pointers.
     // The CDN never caches these (cache rule in scripts/cloudflare-setup.ts), so browsers keep getting HTML.
     if (!isData && prefersMarkdown(c.req.header("accept"))) {
-      const body = snapshot.pageMarkdown(c.req.path);
-      return c.body(body ?? buildNotFoundMarkdown(c.req.path), body ? 200 : 404, {
+      const page = snapshot.pageMarkdown(c.req.path);
+      return c.body(page?.body ?? buildNotFoundMarkdown(c.req.path), page ? 200 : 404, {
         ...markdown,
         vary: "Accept",
-        "cache-control": body ? agentCacheControl : noStore,
+        "cache-control": page ? agentCacheControl : noStore,
       });
     }
     if (!renderPage) return c.body("Not found\n", 404, { ...text, "cache-control": noStore });
@@ -236,10 +241,8 @@ export function createApp(db: Db, { log = false, web, mode = "production" }: Opt
     response.headers.set("cache-control", res.status === 200 ? pageCacheControl : noStore);
     if (!isData) {
       response.headers.set("vary", "Accept");
-      if (res.status === 200 && snapshot.pageMarkdown(c.req.path)) {
-        const md = c.req.path === "/" ? "/index.md" : `${c.req.path.replace(/\/$/, "")}.md`;
-        response.headers.append("link", `<${md}>; rel="alternate"; type="text/markdown"`);
-      }
+      const md = res.status === 200 ? snapshot.pageMarkdown(c.req.path) : undefined;
+      if (md) response.headers.append("link", `<${md.url}>; rel="alternate"; type="text/markdown"`);
     }
     return response;
   });

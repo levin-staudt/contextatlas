@@ -33,6 +33,9 @@ export type Snapshot = ReturnType<typeof loadSnapshot>;
  * The docs come from the MDX files next to the binary and are compiled once here too. `site` is what
  * the React pages (apps/web) read as load context.
  */
+/** A page's Markdown copy: the page path, the .md URL and the Markdown. */
+type MarkdownPage = { path: string; url: string; body: string };
+
 export function loadSnapshot(db: Db) {
   const catalog = getCatalog(db);
   const docs = compileDocs(loadDocs());
@@ -54,27 +57,36 @@ export function loadSnapshot(db: Db) {
     llmsUrl,
     mcpUrl,
     openApiUrl,
+    // `markdown` is filled below, before any request reads it.
+    markdownPath: (path: string) => markdown.get(path)?.url,
   };
   const llmsTxt = buildLlmsTxt(catalog, docs.pages);
-  // Every page as Markdown, by page path: what `Accept: text/markdown` and the .md URLs return.
-  // The home page is the catalog itself, so its Markdown is llms.txt.
-  const markdown = new Map<string, string>([
-    ["/", llmsTxt],
-    ["/agent", buildAgentMarkdown()],
-    ...docs.pages.map((page): [string, string] => [page.path, buildDocMarkdown(page)]),
-    ...topics.map((topic): [string, string] => [
-      topicPagePath(topic.id),
-      buildTopicMarkdown(topic, catalog.updatedAt, related.get(topic.id) ?? []),
+  // Every page as Markdown, by page path: what `Accept: text/markdown` and the .md URLs return, and the
+  // .md URL itself. The home page is the catalog itself, so its Markdown is llms.txt.
+  const markdown = new Map<string, MarkdownPage>([
+    ["/", { path: "/", url: "/index.md", body: llmsTxt }],
+    ["/agent", { path: "/agent", url: "/agent.md", body: buildAgentMarkdown() }],
+    ...docs.pages.map((page): [string, MarkdownPage] => [
+      page.path,
+      { path: page.path, url: page.markdownPath, body: buildDocMarkdown(page) },
     ]),
+    ...topics.map((topic): [string, MarkdownPage] => {
+      const path = topicPagePath(topic.id);
+      const body = buildTopicMarkdown(topic, catalog.updatedAt, related.get(topic.id) ?? []);
+      return [path, { path, url: `${path}.md`, body }];
+    }),
   ]);
+  const markdownByUrl = new Map([...markdown.values()].map((page) => [page.url, page]));
   return {
     catalog,
     site,
+    /** The Markdown copy of a page, by the page's path. */
     pageMarkdown: (path: string) => markdown.get(path.length > 1 ? path.replace(/\/$/, "") : path),
+    /** A page's Markdown copy by its .md URL (/index.md, /agent.md, /docs/mcp.md, /topics/vercel.md). */
+    markdownFile: (url: string) => markdownByUrl.get(url),
     updatedAt: catalog.updatedAt,
     topics,
     topic: (id: string) => byId.get(id),
-    related: (id: string) => related.get(id) ?? [],
     docs,
     llmsTxt,
     llmsFullTxt: buildLlmsFullTxt(catalog, docs.pages),

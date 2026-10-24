@@ -109,7 +109,8 @@ const roleWords = (role: string) =>
   role
     .toLowerCase()
     .split(/[^a-z0-9]+/)
-    .filter((word) => word.length > 2 && word !== "and");
+    // Two letters are enough for "AI" and "UI"; only connecting words carry no meaning.
+    .filter((word) => word.length > 1 && !["and", "or", "for", "of", "the"].includes(word));
 
 /**
  * Topics to link from a topic's page: first those with a role that shares a word ("Postgres

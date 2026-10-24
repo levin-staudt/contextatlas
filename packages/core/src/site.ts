@@ -1,3 +1,5 @@
+import { topicPagePath } from "./format";
+
 export const repoUrl = "https://github.com/levin-staudt/contextatlas";
 
 /** Public origin used in every absolute link the site, API and MCP hand out. Override with SITE_URL. */
@@ -13,11 +15,6 @@ export const mcpRegistryName = "io.github.levin-staudt/contextatlas";
 /** A topic's small llms.txt for agents. */
 export function topicUrl(topicId: string) {
   return `${siteUrl}/llms/${topicId}.txt`;
-}
-
-/** A topic's page for people, `/topics/<id>`; the same page as Markdown is `/topics/<id>.md`. */
-export function topicPagePath(topicId: string) {
-  return `/topics/${topicId}`;
 }
 
 export function topicPageUrl(topicId: string) {

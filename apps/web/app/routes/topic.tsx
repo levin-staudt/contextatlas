@@ -1,5 +1,5 @@
 import type { SourceKind } from "@contextatlas/core";
-import { displayUrl, formatSignal, topicSummary } from "@contextatlas/core/format";
+import { displayUrl, formatSignal, topicPagePath, topicSummary } from "@contextatlas/core/format";
 import { data, Link, type ShouldRevalidateFunctionArgs } from "react-router";
 import { CopyButton } from "../components/copy";
 import { KindSymbol } from "../components/icons";
@@ -14,7 +14,8 @@ export function loader({ params, context, url }: Route.LoaderArgs) {
   return {
     siteUrl: site.siteUrl,
     repoUrl: site.repoUrl,
-    url: `${site.siteUrl}/topics/${topic.id}`,
+    url: `${site.siteUrl}${topicPagePath(topic.id)}`,
+    markdownPath: site.markdownPath(topicPagePath(topic.id)),
     updatedAt: site.catalog.updatedAt,
     description: topicSummary(topic),
     topic: {
@@ -40,14 +41,14 @@ export const shouldRevalidate = ({ currentParams, nextParams }: ShouldRevalidate
 
 export function meta({ loaderData }: Route.MetaArgs) {
   if (!loaderData) return [];
-  const { topic, url, siteUrl, repoUrl, description, updatedAt } = loaderData;
+  const { topic, url, siteUrl, repoUrl, description, updatedAt, markdownPath } = loaderData;
   const title = `${topic.name} for coding agents: llms.txt, MCP and docs · Context Atlas`;
   return pageMeta({
     title,
     description,
     siteUrl,
     url,
-    markdownPath: `/topics/${topic.id}.md`,
+    markdownPath,
     jsonLd: [
       ld.organization(siteUrl, repoUrl),
       {
@@ -89,7 +90,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
 const signalLabels = { file: "File", dependency: "Dependency", env: "Env var", hint: "Hint" } as const;
 
 export default function TopicPage({ loaderData }: Route.ComponentProps) {
-  const { topic, related, description, updatedAt, mcpCall } = loaderData;
+  const { topic, related, description, updatedAt, mcpCall, markdownPath } = loaderData;
   const kinds = [...new Set(topic.sources.map((source) => source.kind))] as SourceKind[];
   return (
     <main className="mx-auto max-w-7xl px-4 pt-4 sm:px-8 sm:pt-10">
@@ -199,7 +200,7 @@ export default function TopicPage({ loaderData }: Route.ComponentProps) {
                 {related.map((other) => (
                   <li key={other.id}>
                     <Link
-                      to={`/topics/${other.id}`}
+                      to={topicPagePath(other.id)}
                       prefetch="intent"
                       className="group block rounded-lg border border-contour px-4 py-3 no-underline hover:border-sea hover:bg-paper-deep"
                     >
@@ -227,7 +228,7 @@ export default function TopicPage({ loaderData }: Route.ComponentProps) {
                 <span className="text-ink-soft">: a small llms.txt</span>
               </li>
               <li>
-                <a href={`/topics/${topic.id}.md`} className="underline hover:text-sea">
+                <a href={markdownPath} className="underline hover:text-sea">
                   This page as Markdown
                 </a>
               </li>

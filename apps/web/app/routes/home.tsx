@@ -1,5 +1,5 @@
 import type { SourceKind } from "@contextatlas/core";
-import { displayUrl, formatSignal } from "@contextatlas/core/format";
+import { displayUrl, formatSignal, topicPagePath } from "@contextatlas/core/format";
 import { type FormEvent, type MouseEvent, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { AnimatedGlobe } from "../components/globe";
@@ -26,6 +26,7 @@ export function loader({ context }: Route.LoaderArgs) {
     siteUrl: site.siteUrl,
     repoUrl: site.repoUrl,
     url: `${site.siteUrl}/`,
+    markdownPath: site.markdownPath("/"),
     regions,
     kinds: (Object.keys(site.kinds) as SourceKind[]).map((id) => ({ id, ...site.kinds[id] })),
     sourceCount: site.counts.sources,
@@ -38,12 +39,12 @@ export const shouldRevalidate = () => false;
 
 export function meta({ loaderData }: Route.MetaArgs) {
   if (!loaderData) return [];
-  const { siteUrl, repoUrl, url, regions, topicCount } = loaderData;
+  const { siteUrl, repoUrl, url, markdownPath, regions, topicCount } = loaderData;
   return pageMeta({
     title: "Context Atlas: llms.txt, MCP servers and agent docs for your tech stack",
     siteUrl,
     url,
-    markdownPath: "/index.md",
+    markdownPath,
     jsonLd: [
       ld.organization(siteUrl, repoUrl),
       ld.website(siteUrl, defaultDescription),
@@ -64,7 +65,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
               "@type": "ListItem",
               position: index + 1,
               name: topic.name,
-              url: `${siteUrl}/topics/${topic.id}`,
+              url: `${siteUrl}${topicPagePath(topic.id)}`,
             })),
         },
       },
@@ -358,7 +359,7 @@ function TopicCard({ topic, kinds }: { topic: Regions[number]["topics"][number];
     >
       <div className="flex flex-wrap items-baseline justify-between gap-x-3">
         <h3 className="text-2xl font-bold">
-          <Link to={`/topics/${topic.id}`} prefetch="intent" className="no-underline hover:underline">
+          <Link to={topicPagePath(topic.id)} prefetch="intent" className="no-underline hover:underline">
             {topic.name}
           </Link>
         </h3>
@@ -386,7 +387,7 @@ function TopicCard({ topic, kinds }: { topic: Regions[number]["topics"][number];
         ))}
       </ul>
       <p className="mt-2 font-sans text-sm text-ink-soft">
-        <Link to={`/topics/${topic.id}`} prefetch="intent" className="underline hover:text-ink">
+        <Link to={topicPagePath(topic.id)} prefetch="intent" className="underline hover:text-ink">
           Signals and related tools
         </Link>
         {" · "}For agents:{" "}

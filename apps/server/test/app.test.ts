@@ -201,7 +201,11 @@ describe("docs", () => {
     const home = await site.request("/docs");
     expect(home.status).toBe(200);
     expect(home.headers.get("cache-control")).toContain("s-maxage=86400");
-    expect(await home.text()).toContain("<title>Docs · Context Atlas</title>");
+    // The header and the tag in the page announce the same Markdown copy.
+    expect(home.headers.get("link")).toBe('</docs/index.md>; rel="alternate"; type="text/markdown"');
+    const homeHtml = await home.text();
+    expect(homeHtml).toContain("<title>Docs · Context Atlas</title>");
+    expect(homeHtml).toContain('<link rel="alternate" type="text/markdown" href="/docs/index.md"/>');
 
     const html = await (await site.request("/docs/mcp")).text();
     expect(html).toContain("<title>MCP server · Context Atlas docs</title>");
@@ -293,7 +297,14 @@ describe("agent files", () => {
     expect(body).toStartWith("# Neon · Context Atlas");
     expect(body).toContain("Related topics:");
     expect(body).toContain(`(${siteUrl}/topics/supabase)`);
-    expect((await app.request("/topics/nope.md")).status).toBe(404);
+    // An unknown .md is a Markdown 404 with pointers, also when the pages are rendered.
+    for (const client of [app, await pageApp()]) {
+      const missing = await client.request("/topics/nope.md");
+      expect(missing.status).toBe(404);
+      expect(missing.headers.get("content-type")).toBe("text/markdown; charset=utf-8");
+      expect(missing.headers.get("cache-control")).toBe("no-store");
+      expect(await missing.text()).toContain(`${siteUrl}/llms.txt`);
+    }
   });
 
   test("robots.txt allows search engines and AI crawlers and points to the sitemap", async () => {
@@ -302,6 +313,9 @@ describe("agent files", () => {
       expect(body).toContain(`User-agent: ${bot}\n`);
     expect(body).toContain("Allow: /\n");
     expect(body).not.toMatch(/^Disallow: \/$/m);
+    // Route data stays out of the index, with or without a query string.
+    expect(body).toContain("Disallow: /*.data$\n");
+    expect(body).toContain("Disallow: /*.data?\n");
     expect(body).toContain(`Sitemap: ${siteUrl}/sitemap.xml`);
   });
 

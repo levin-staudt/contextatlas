@@ -1,7 +1,7 @@
 export { catalog, kinds } from "./catalog";
 export { type Db, defaultDatabasePath, isCompiled, migrateDatabase, migrationsDir, openDatabase } from "./db";
 export { buildDocMarkdown, type DocPage, docsDir, docsSections, loadDocs, mapOutsideCode } from "./docs";
-export { displayUrl, formatSignal, topicSummary } from "./format";
+export { displayUrl, formatSignal, topicPagePath, topicSummary } from "./format";
 export {
   agentPrompts,
   buildAgentMarkdown,
@@ -32,7 +32,6 @@ export {
   openApiUrl,
   repoUrl,
   siteUrl,
-  topicPagePath,
   topicPageUrl,
   topicUrl,
 } from "./site";

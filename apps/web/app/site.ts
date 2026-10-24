@@ -40,6 +40,8 @@ export type SiteData = {
   llmsUrl: string;
   mcpUrl: string;
   openApiUrl: string;
+  /** The URL of a page's Markdown copy, by the page's path (`/` → `/index.md`), for the alternate link. */
+  markdownPath: (path: string) => string | undefined;
 };
 
 /** Set by apps/server for every request; it takes this object from the build (entry.server.tsx). */
