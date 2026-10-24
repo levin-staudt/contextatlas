@@ -13,7 +13,7 @@ The [home page](/) lists every topic, grouped by region.
 - **Search.** Type into "Search the atlas" to filter as you type. It matches names, roles, regions, detection signals and source titles and URLs, so `database`, `auth` or `turbo.json` all work. The search is kept in the URL, as in [/?q=database](/?q=database), so you can share it.
 - **Filter by kind.** The legend lists the source kinds. Click a symbol to hide that kind of source, for example to see only MCP servers.
 - **Jump to a region.** The region links take you to Cloud providers, Frameworks, Standards or CLIs.
-- **Link to a topic.** Every topic has an anchor with its id, such as [/#supabase](/#supabase).
+- **Open a topic.** Click a tool's name for its own page, such as [/topics/supabase](/topics/supabase), with its sources, signals and related tools. On the home page every topic also has an anchor with its id, such as [/#supabase](/#supabase).
 
 Without JavaScript the page shows everything; search and filters are added on top.
 
@@ -24,7 +24,9 @@ Take Neon as an example:
 - **Name and role:** "Neon", "Postgres database". The role is the job the tool does in a stack, and for databases the engine.
 - **Sources:** the links Neon publishes for agents, each marked with its kind.
 
-The detection signals do not show on the page, but they are in every agent file. For Neon, they are the `@neondatabase/serverless` dependency and a `DATABASE_URL` that points to `*.neon.tech`.
+The detection signals are on the topic's page ([/topics/neon](/topics/neon)) and in every agent file. For Neon, they are the `@neondatabase/serverless` dependency and a `DATABASE_URL` that points to `*.neon.tech`.
+
+The page also lists related tools: alternatives with a similar role first, such as Supabase and PlanetScale for Neon, then other tools from the same region.
 
 ## Source kinds
 
@@ -49,4 +51,4 @@ Signals tell an agent that a project uses a topic. There are four types:
 
 ## Everything in one place for one topic
 
-Each topic has a small file with all of the above: `/llms/<id>.txt`, for example [/llms/neon.txt](/llms/neon.txt). It is the quickest way to hand one tool's sources to an agent.
+Each topic has a small file with all of the above: `/llms/<id>.txt`, for example [/llms/neon.txt](/llms/neon.txt). It is the quickest way to hand one tool's sources to an agent. The topic page as Markdown, with the related tools added, is `/topics/<id>.md`.

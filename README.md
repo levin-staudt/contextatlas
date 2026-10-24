@@ -38,5 +38,6 @@ bun run deploy   # deploy main to the VPS through GitHub Actions
 | `apps/web` | The pages for people: React Router routes, components and styles. Reads the catalog from the server's snapshot, no data logic. See [`docs/web-frontend.md`](docs/web-frontend.md). |
 | `apps/redirect` | Cloudflare Worker that 301s the old workers.dev URL to the new domain. |
 | `deploy/` | systemd unit and VPS scripts. |
-| `scripts/` | Cloudflare setup and VPS access from the harness. |
+| `scripts/` | Cloudflare setup, VPS access, IndexNow ping and the share image, all from the harness. |
+| `server.json`, `glama.json` | The remote MCP server's entries for the official MCP Registry and Glama. |
 | `docs/deploy.md` | Infrastructure and runbook. |

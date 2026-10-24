@@ -29,6 +29,7 @@ Agents fetch plain-text URLs reliably. Paste a link into the chat, or put it in 
 | The sources of one tool | `https://contextatlas.dev/llms/<id>.txt`, such as `https://contextatlas.dev/llms/stripe.txt` |
 | The catalog and all docs at once | `https://contextatlas.dev/llms-full.txt` |
 | One docs page | The page URL with `.md`, such as `https://contextatlas.dev/docs/mcp.md` |
+| One tool with related tools | `https://contextatlas.dev/topics/<id>.md`, such as `https://contextatlas.dev/topics/stripe.md` |
 | Structured data for a script | `https://contextatlas.dev/atlas.json` or the [JSON API](/docs/api) |
 
 Prefer the topic files over the whole catalog when you know your stack. They are small and leave room in the context for the vendor docs themselves.
@@ -41,7 +42,13 @@ Before working with a tool from our stack, fetch its sources from https://contex
 
 ## Markdown
 
-Every docs page has a Markdown version: add `.md` to its URL, or use the link at the bottom of the page. Every docs page also announces it with `<link rel="alternate" type="text/markdown">`, so agents that read a page's head find it on their own.
+Every page has a Markdown version: add `.md` to its URL (`/index.md` for the home page), or use the link on the page. Pages announce it with `<link rel="alternate" type="text/markdown">` and a `Link` header, so agents find it on their own.
+
+Agents that send `Accept: text/markdown` get the Markdown under the page's own URL, and a Markdown 404 with pointers for unknown paths:
+
+```bash
+curl -H 'Accept: text/markdown' https://contextatlas.dev/agent
+```
 
 ## MCP instead
 

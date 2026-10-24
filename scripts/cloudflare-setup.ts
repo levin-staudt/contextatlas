@@ -6,9 +6,12 @@
 //   bun run cloudflare:setup tunnel-token    print the tunnel token for scripts/vps-bootstrap.sh
 //
 // Reads CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID and DOMAIN from the environment or .env.
+// Optional: GOOGLE_SITE_VERIFICATION (the TXT value Search Console shows) and BING_SITE_VERIFICATION
+// (the CNAME name Bing Webmaster Tools shows) add the DNS records that verify the domain.
 // See docs/deploy.md for the token permissions and the full runbook.
 
 import { staticPagePaths } from "../apps/web/app/pages";
+import { indexNowKey } from "../packages/core/src/site";
 
 const token = required("CLOUDFLARE_API_TOKEN");
 const accountId = required("CLOUDFLARE_ACCOUNT_ID");
@@ -85,6 +88,36 @@ async function ensureCname(zoneId: string, name: string, target: string) {
   else await cf("POST", `/zones/${zoneId}/dns_records`, body);
 }
 
+async function ensureRecord(zoneId: string, record: { type: "TXT" | "CNAME"; name: string; content: string }) {
+  const existing = await cf<{ id: string; content: string }[]>(
+    "GET",
+    `/zones/${zoneId}/dns_records?type=${record.type}&name=${record.name}`,
+  );
+  // TXT records can hold several values on one name; only an identical one counts as present.
+  const match =
+    record.type === "TXT" ? existing.find((r) => r.content.replace(/"/g, "") === record.content) : existing[0];
+  const body = { ...record, proxied: false, ttl: 1, comment: "Context Atlas search engine verification" };
+  if (match) await cf("PATCH", `/zones/${zoneId}/dns_records/${match.id}`, body);
+  else await cf("POST", `/zones/${zoneId}/dns_records`, body);
+}
+
+/** DNS verification for Google Search Console and Bing Webmaster Tools, when their values are set. */
+async function ensureSearchVerification(zoneId: string) {
+  const done: string[] = [];
+  const google = process.env.GOOGLE_SITE_VERIFICATION;
+  if (google) {
+    const content = google.startsWith("google-site-verification=") ? google : `google-site-verification=${google}`;
+    await ensureRecord(zoneId, { type: "TXT", name: domain, content });
+    done.push("Google Search Console (TXT)");
+  }
+  const bing = process.env.BING_SITE_VERIFICATION;
+  if (bing) {
+    await ensureRecord(zoneId, { type: "CNAME", name: `${bing}.${domain}`, content: "verify.bing.com" });
+    done.push("Bing Webmaster Tools (CNAME)");
+  }
+  return done;
+}
+
 /** Lets GitHub Actions (and agents with the same service token) reach SSH through the tunnel, nobody else. */
 type Credentials = { client_id: string; client_secret: string };
 
@@ -154,11 +187,20 @@ async function ensureCacheRule(zoneId: string) {
     "/sitemap.xml",
     "/robots.txt",
     "/favicon.svg",
+    "/og.png",
+    "/index.md",
+    "/agent.md",
+    "/openapi.json",
+    `/${indexNowKey}.txt`,
   ];
   const expression =
     `http.host eq "${domain}" and (http.request.uri.path in {${paths.map((p) => `"${p}"`).join(" ")}}` +
     ` or starts_with(http.request.uri.path, "/llms/") or starts_with(http.request.uri.path, "/docs/")` +
+    ` or starts_with(http.request.uri.path, "/topics/") or starts_with(http.request.uri.path, "/.well-known/")` +
     ` or starts_with(http.request.uri.path, "/assets/"))`;
+  // Pages answer `Accept: text/markdown` with Markdown under the same URL. Cloudflare ignores
+  // `Vary: Accept`, so these requests skip the cache; otherwise browsers could get a cached Markdown copy.
+  const markdownExpression = `http.host eq "${domain}" and any(http.request.headers["accept"][*] contains "text/markdown")`;
   await cf("PUT", `/zones/${zoneId}/rulesets/phases/http_request_cache_settings/entrypoint`, {
     rules: [
       {
@@ -170,6 +212,13 @@ async function ensureCacheRule(zoneId: string) {
           edge_ttl: { mode: "respect_origin" },
           browser_ttl: { mode: "respect_origin" },
         },
+      },
+      // Last, so it wins over the rule above.
+      {
+        description: "Context Atlas: never cache Markdown negotiated by Accept",
+        expression: markdownExpression,
+        action: "set_cache_settings",
+        action_parameters: { cache: false },
       },
     ],
   });
@@ -215,8 +264,11 @@ async function main() {
 
   await ensureCacheRule(zone.id);
   console.log(
-    "Cache rule: pages and their .data, /docs/*, /llms.txt, /llms-full.txt, /llms/*, /atlas.json, /assets/* cached per Cache-Control",
+    "Cache rule: pages and their .data, /docs/*, /topics/*, agent files, /.well-known/*, /assets/* cached per Cache-Control; Accept: text/markdown never cached",
   );
+
+  const verified = await ensureSearchVerification(zone.id);
+  if (verified.length) console.log(`Search verification DNS: ${verified.join(", ")}`);
 
   if (github) {
     gh(["variable", "set", "DEPLOY_SSH_HOST", "--body", sshHost]);

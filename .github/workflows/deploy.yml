@@ -98,3 +98,19 @@ jobs:
           curl -fsS "$SITE_URL/api/search?q=vercel" | grep -q '"vercel"'
           curl -fsS -X POST "$SITE_URL/mcp" -H 'content-type: application/json' -H 'accept: application/json, text/event-stream' \
             -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"search","arguments":{"query":"vercel"}}}' | grep -q vercel
+          curl -fsS "$SITE_URL/topics/vercel" | grep -q '<link rel="canonical"'
+          curl -fsS -H 'accept: text/markdown' "$SITE_URL/" | head -1 | grep -q "# Context Atlas"
+          curl -fsS "$SITE_URL/openapi.json" | grep -q '"openapi"'
+          curl -fsS "$SITE_URL/.well-known/mcp/server-card.json" | grep -q get_topic
+
+      # The deploy job only has the build artifact; the ping script lives in the repository.
+      - uses: actions/checkout@v5
+        with:
+          path: repo
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Ping IndexNow
+        working-directory: repo
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: bun scripts/indexnow.ts

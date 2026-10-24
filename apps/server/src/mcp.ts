@@ -1,25 +1,37 @@
-import { type Db, search, siteUrl, sourceKinds, topicUrl } from "@contextatlas/core";
+import {
+  type Db,
+  mcpRegistryName,
+  mcpUrl,
+  repoUrl,
+  search,
+  siteUrl,
+  sourceKinds,
+  topicPageUrl,
+  topicUrl,
+} from "@contextatlas/core";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import { LATEST_PROTOCOL_VERSION } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import type { Snapshot } from "./snapshot";
 
-const version = "1.0.0";
+export const version = "1.0.0";
 
 function json(value: unknown) {
   return { content: [{ type: "text" as const, text: JSON.stringify(value, null, 2) }] };
 }
 
+const serverInfo = { name: "contextatlas", title: "Context Atlas", version };
+
+const instructions =
+  "Context Atlas catalogs the sources vendors publish for coding agents (llms.txt, docs, MCP servers, skills, rules, CLIs). Use `search` to find tools by name, role or detection signal, `get_topic` for all sources of one tool, and `list_topics` to see the whole catalog. Fetch a topic's llms.txt or Rules source first; only search Full text sources, they are several megabytes. " +
+  `Docs on using this server and the site, as Markdown: ${siteUrl}/llms-full.txt or ${siteUrl}/docs/<page>.md, listed in ${siteUrl}/llms.txt.`;
+
 /** The tools are thin wrappers around packages/core, the same functions the JSON API uses. */
 export function createMcpServer(db: Db, snapshot: Snapshot) {
-  const server = new McpServer(
-    { name: "contextatlas", version },
-    {
-      instructions:
-        "Context Atlas catalogs the sources vendors publish for coding agents (llms.txt, docs, MCP servers, skills, rules, CLIs). Use `search` to find tools by name, role or detection signal, `get_topic` for all sources of one tool, and `list_topics` to see the whole catalog. Fetch a topic's llms.txt or Rules source first; only search Full text sources, they are several megabytes. " +
-        `Docs on using this server and the site, as Markdown: ${siteUrl}/llms-full.txt or ${siteUrl}/docs/<page>.md, listed in ${siteUrl}/llms.txt.`,
-    },
-  );
+  const server = new McpServer(serverInfo, { instructions });
 
   server.registerTool(
     "search",
@@ -55,7 +67,10 @@ export function createMcpServer(db: Db, snapshot: Snapshot) {
       if (!topic) {
         return { ...json({ error: `Unknown topic "${id}". Use search or list_topics to find ids.` }), isError: true };
       }
-      return json({ updatedAt: snapshot.updatedAt, topic: { ...topic, llmsTxt: topicUrl(topic.id) } });
+      return json({
+        updatedAt: snapshot.updatedAt,
+        topic: { ...topic, llmsTxt: topicUrl(topic.id), page: topicPageUrl(topic.id) },
+      });
     },
   );
 
@@ -96,6 +111,42 @@ export async function handleMcpRequest(db: Db, snapshot: Snapshot, request: Requ
   try {
     return await transport.handleRequest(request);
   } finally {
+    await server.close();
+  }
+}
+
+/**
+ * The MCP server card at /.well-known/mcp/server-card.json: what a client or directory needs to know
+ * before connecting (endpoint, transport, no auth, tools). The tools come from the server itself
+ * over an in-memory connection, so the card never drifts from what /mcp offers.
+ */
+export async function buildServerCard(db: Db, snapshot: Snapshot) {
+  const server = createMcpServer(db, snapshot);
+  const client = new Client({ name: "server-card", version });
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
+  try {
+    const { tools } = await client.listTools();
+    return {
+      $schema: "https://static.modelcontextprotocol.io/schemas/mcp-server-card/v1.json",
+      version: "1.0",
+      protocolVersion: LATEST_PROTOCOL_VERSION,
+      serverInfo,
+      description:
+        "Search the catalog of sources vendors publish for coding agents: llms.txt, docs, MCP servers, skills, rules and CLIs.",
+      registryName: mcpRegistryName,
+      websiteUrl: siteUrl,
+      documentationUrl: `${siteUrl}/docs/mcp`,
+      repository: repoUrl,
+      transport: { type: "streamable-http", endpoint: mcpUrl },
+      remotes: [{ type: "streamable-http", url: mcpUrl }],
+      authentication: { required: false, schemes: [] },
+      capabilities: { tools: { listChanged: false } },
+      instructions,
+      tools,
+    };
+  } finally {
+    await client.close();
     await server.close();
   }
 }

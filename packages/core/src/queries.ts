@@ -104,3 +104,24 @@ export function countSources(catalog: Catalog) {
 export function countTopics(catalog: Catalog) {
   return catalog.regions.reduce((sum, region) => sum + region.topics.length, 0);
 }
+
+const roleWords = (role: string) =>
+  role
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    // Two letters are enough for "AI" and "UI"; only connecting words carry no meaning.
+    .filter((word) => word.length > 1 && !["and", "or", "for", "of", "the"].includes(word));
+
+/**
+ * Topics to link from a topic's page: first those with a role that shares a word ("Postgres
+ * database" and "Database"), so alternatives come first, then others from the same region.
+ */
+export function relatedTopics(topics: TopicWithRegion[], id: string, limit = 6): TopicWithRegion[] {
+  const topic = topics.find((t) => t.id === id);
+  if (!topic) return [];
+  const words = new Set(roleWords(topic.role));
+  const others = topics.filter((t) => t.id !== id);
+  const sameRole = others.filter((t) => roleWords(t.role).some((word) => words.has(word)));
+  const sameRegion = others.filter((t) => t.region.id === topic.region.id && !sameRole.includes(t));
+  return [...sameRole, ...sameRegion].slice(0, limit);
+}

@@ -1,4 +1,5 @@
-import { type ReactNode, ViewTransition } from "react";
+import serifFont from "@fontsource-variable/alegreya/files/alegreya-latin-wght-normal.woff2?url";
+import { type ReactNode, useState, ViewTransition } from "react";
 import {
   isRouteErrorResponse,
   Link,
@@ -16,7 +17,14 @@ import { CommandPalette, SearchTrigger } from "./components/command-palette";
 import { AtlasMark, ThemeIcon } from "./components/icons";
 import { pageMeta } from "./meta";
 import { getSite } from "./site";
+// Inlined into every page: one 8 KB (gzip) style block renders sooner than a stylesheet request that
+// competes with the fonts and scripts for the first round trips on a slow connection.
+// Only the production server build keeps the CSS text; the client hydrates the existing <style> and
+// drops the import. `bun dev` links the stylesheet instead, so Vite can hot-reload it.
+import inlineStyles from "./styles.css?inline";
 import stylesUrl from "./styles.css?url";
+
+const styles = import.meta.env.SSR && import.meta.env.PROD ? inlineStyles : "";
 
 /** Runs before paint so the stored or system theme applies without a flash. */
 const themeScript = `(function(){try{var t=localStorage.getItem("theme");if(t!=="light"&&t!=="dark"){t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}document.documentElement.dataset.theme=t}catch(e){}})()`;
@@ -25,13 +33,9 @@ export const links: Route.LinksFunction = () => [
   { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
   { rel: "alternate", type: "text/plain", href: "/llms.txt" },
   { rel: "alternate", type: "application/json", href: "/atlas.json" },
-  { rel: "preconnect", href: "https://fonts.googleapis.com" },
-  { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-  {
-    rel: "stylesheet",
-    href: "https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400..900;1,400..900&family=Alegreya+Sans:wght@400;500;700&display=swap",
-  },
-  { rel: "stylesheet", href: stylesUrl },
+  // The body font, which the largest text on every first screen uses.
+  { rel: "preload", href: serifFont, as: "font", type: "font/woff2", crossOrigin: "anonymous" },
+  ...(import.meta.env.DEV ? [{ rel: "stylesheet", href: stylesUrl }] : []),
 ];
 
 /** Site-wide data: links for the footer and the docs index for the search palette. */
@@ -69,6 +73,8 @@ export function Layout({ children }: { children: ReactNode }) {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
+        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: the app's own compiled stylesheet */}
+        {!import.meta.env.DEV && <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: styles }} />}
         <Links />
         {/* biome-ignore lint/security/noDangerouslySetInnerHtml: a constant script, needed before paint */}
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
@@ -93,8 +99,13 @@ export function Layout({ children }: { children: ReactNode }) {
 }
 
 export default function App() {
+  // Only page changes cross-fade. Before the first navigation the only transition is hydration, and
+  // animating it would snapshot the whole page right when it becomes interactive.
+  const navigating = useNavigation().state !== "idle";
+  const [animate, setAnimate] = useState(false);
+  if (navigating && !animate) setAnimate(true);
   return (
-    <ViewTransition>
+    <ViewTransition default={animate ? "auto" : "none"}>
       <div id="main">
         <Outlet />
       </div>

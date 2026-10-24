@@ -22,6 +22,8 @@ Every step below runs from the harness. Day to day you only need `bun run deploy
 | Restart (re-seeds) | `scripts/vps.sh sudo systemctl restart contextatlas` |
 | Roll back | `scripts/vps.sh contextatlas-activate /opt/contextatlas/releases/<sha>` (the last five releases are kept) |
 | Live check | `curl -fsS https://contextatlas.dev/healthz` |
+| Ping search engines | `bun run indexnow` (IndexNow: Bing, Yandex and others; the deploy does this) |
+| Publish the MCP server | `bun run mcp:publish` (official MCP Registry, see [Discoverability](#discoverability)) |
 
 A deploy builds and checks on GitHub, uploads to `/opt/contextatlas/releases/<sha>`, and `contextatlas-activate` switches the `current` symlink and restarts the service. `ExecStartPre` runs `contextatlas seed`, which builds a fresh database file from `packages/core/src/catalog.ts` with the release's own migrations and swaps it in before the new binary serves. If the restart fails or `/healthz` does not answer within 30 seconds, it rolls back to the previous release; since the old release rebuilds the database too, the schema rolls back with it. The last five releases are kept. Then the workflow purges the Cloudflare cache and smoke-tests the site, the API and the MCP endpoint.
 
@@ -102,6 +104,18 @@ Once the new domain serves the site, replace the old vinext Worker with a 301 re
 env -u CLOUDFLARE_API_TOKEN bun run deploy:redirect   # wrangler deploy with the `wrangler login` session; the setup token has no Workers permission
 curl -sI https://contextatlas.levinstaudt.workers.dev/llms.txt | grep -i location
 ```
+
+## Discoverability
+
+How search engines, agents and directories find the site (#18). Everything below runs from the harness.
+
+- **Crawling.** `/robots.txt` allows every crawler and names the AI crawlers explicitly; `/sitemap.xml` lists every page, topic page, docs page and agent file with `lastmod`. Pages carry canonical links, Open Graph and Twitter tags (`apps/web/public/og.png`, rendered by `bun run og:image`) and JSON-LD.
+- **IndexNow.** After every deploy the workflow runs `scripts/indexnow.ts`, which submits all sitemap URLs. The key is `indexNowKey` in `packages/core/src/site.ts`, served at `/<key>.txt`; it is public by design.
+- **Google Search Console and Bing Webmaster Tools.** Both verify the domain by DNS. Add the domain property in Search Console and copy the TXT value into `.env` as `GOOGLE_SITE_VERIFICATION`; for Bing, copy the CNAME name as `BING_SITE_VERIFICATION` (or import the site from Search Console). Then `bun run cloudflare:setup` creates the records. Submit `https://contextatlas.dev/sitemap.xml` in both; robots.txt points to it as well, so they find it without that step. Adding the properties needs a login in the two consoles once; there is no API for creating a Search Console property for a new domain.
+- **Markdown negotiation.** Pages answer `Accept: text/markdown` with Markdown and send `Vary: Accept`. Cloudflare ignores `Vary` for HTML, so the cache rule has a second rule that never caches requests whose `Accept` contains `text/markdown`. Rerun `bun run cloudflare:setup` after changing either rule.
+- **Official MCP Registry.** `server.json` in the repo root describes the remote server (`io.github.levin-staudt/contextatlas`, Streamable HTTP, no package). `bun run mcp:publish` starts `.github/workflows/publish-mcp.yml`, which logs in with GitHub OIDC (no secret) and publishes. Bump `version` in `server.json` and in `apps/server/src/mcp.ts` together before publishing again; a test keeps them equal. Check the entry with `curl -s "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.levin-staudt/contextatlas"`. Version 1.0.0 is published (2026-10-23, with `mcp-publisher login github -token "$(gh auth token)"` from the harness, which works too).
+- **Other MCP directories.** Glama imports the official registry: the server is listed at https://glama.ai/mcp/connectors/io.github.levin-staudt/contextatlas, and `glama.json` names the maintainer for its repository index. PulseMCP also imports the registry. mcp.so takes submissions as GitHub issues (chatmcp/mcpso#6002), awesome-remote-mcp-servers as pull requests that need the Glama badge (punkpeye/awesome-remote-mcp-servers#2759). Smithery needs an account login. The server card at `/.well-known/mcp/server-card.json` gives every directory the endpoint, transport and tools.
+- **llms.txt directories.** llms-txt-hub (llmstxt.com) takes one `.mdx` file per site by pull request (thedaviddias/llms-txt-hub#2128). directory.llmstxt.cloud and llmstxt.site have web forms; submit `https://contextatlas.dev/llms.txt`.
 
 ## Decisions
 

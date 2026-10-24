@@ -1,0 +1,36 @@
+# `bun run mcp:publish` (or `gh workflow run publish-mcp.yml`): publish server.json, the remote MCP
+# server at https://contextatlas.dev/mcp, to the official MCP Registry. GitHub OIDC proves the
+# io.github.levin-staudt namespace, so no token or secret is needed. Bump "version" in server.json
+# (and `version` in apps/server/src/mcp.ts) before publishing again; a version can be published once.
+name: Publish to MCP Registry
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check that the remote server answers
+        run: |
+          curl -fsS https://contextatlas.dev/.well-known/mcp/server-card.json > /dev/null
+          curl -fsS -X POST https://contextatlas.dev/mcp -H 'content-type: application/json' -H 'accept: application/json, text/event-stream' \
+            -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | grep -q get_topic
+
+      - name: Install mcp-publisher
+        run: |
+          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
+
+      - name: Authenticate to the MCP Registry
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish
+        run: ./mcp-publisher publish
+
+      - name: Show the entry
+        run: curl -fsS "https://registry.modelcontextprotocol.io/v0/servers?search=io.github.levin-staudt/contextatlas"

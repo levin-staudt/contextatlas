@@ -13,6 +13,7 @@ Context Atlas has a few pages for people and several plain files for agents. Bot
 | Page | What it is |
 | --- | --- |
 | [/](/) | The atlas: every tool and source, grouped by region, with search and filters. Each tool has an anchor, such as [/#vercel](/#vercel) |
+| `/topics/<id>` | One tool: its sources, the signals that detect it and related tools, for example [/topics/vercel](/topics/vercel) |
 | [/agent](/agent) | The one-sentence prompt that hands the catalog to any agent, and the MCP command |
 | [/docs](/docs) | These docs |
 
@@ -27,16 +28,26 @@ Filters on the atlas are part of the URL, so a filtered view can be shared, for 
 | [/llms-full.txt](/llms-full.txt) | llms.txt followed by every docs page, in one file |
 | [/atlas.json](/atlas.json) | The catalog as JSON, grouped by region |
 | `/docs/<page>.md` | Any docs page as Markdown, for example [/docs/mcp.md](/docs/mcp.md) |
+| `/index.md`, `/agent.md`, `/topics/<id>.md` | The other pages as Markdown, for example [/topics/vercel.md](/topics/vercel.md) |
 | `/mcp` | The [MCP server](/docs/mcp) |
+| [/.well-known/mcp/server-card.json](/.well-known/mcp/server-card.json) | The MCP server card: endpoint, transport and tools, for clients and directories |
 | `/api/…` | The [JSON API](/docs/api) |
-| [/sitemap.xml](/sitemap.xml) | Every URL above, with the date of the last change |
+| [/openapi.json](/openapi.json) | The JSON API as an OpenAPI 3.1 spec |
+| [/sitemap.xml](/sitemap.xml) | Every page and file above, with the date of the last change |
+| [/robots.txt](/robots.txt) | Allows every crawler, AI crawlers included, and points to the sitemap |
+
+Every page also answers `Accept: text/markdown` with its Markdown version, under the same URL:
+
+```bash
+curl -H 'Accept: text/markdown' https://contextatlas.dev/topics/vercel
+```
 
 All of these are public, need no key and allow requests from any origin (CORS).
 
 ## How the catalog is organized
 
 - **Regions** group tools: Cloud providers (`cloud`), Frameworks (`frameworks`), Standards (`standards`) and CLIs (`clis`).
-- **Topics** are the tools themselves, such as Vercel, Next.js or Drizzle. Each has an id used in every URL and tool call.
+- **Topics** are the tools themselves, such as Vercel, Next.js or Drizzle. Each has an id used in every URL and tool call, and a page at `/topics/<id>`.
 - **Sources** are the links a topic's vendor publishes for agents, each with a kind such as llms.txt or MCP server.
 - **Signals** are files, dependencies and environment variables that show a project uses the topic.
 

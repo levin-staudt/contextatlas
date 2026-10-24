@@ -30,6 +30,8 @@ With it, an agent can work out which llms.txt, docs, MCP servers, skills and CLI
 | Transport | Streamable HTTP (JSON responses, no sessions) |
 | Auth | None |
 | Tools | `search`, `get_topic`, `list_topics`, all read-only |
+| Server card | [`/.well-known/mcp/server-card.json`](/.well-known/mcp/server-card.json) |
+| MCP Registry name | `io.github.levin-staudt/contextatlas` |
 
 Clients that still use the older SSE transport cannot connect. Use the HTTP or "streamable-http" type in their config, or the [stdio bridge](#clients-with-stdio-only).
 

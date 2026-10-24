@@ -1,10 +1,10 @@
 import type { SourceKind } from "@contextatlas/core";
-import { displayUrl, formatSignal } from "@contextatlas/core/format";
+import { displayUrl, formatSignal, topicPagePath } from "@contextatlas/core/format";
 import { type FormEvent, type MouseEvent, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { AnimatedGlobe } from "../components/globe";
 import { KindSymbol } from "../components/icons";
-import { pageMeta } from "../meta";
+import { defaultDescription, ld, pageMeta } from "../meta";
 import { getSite } from "../site";
 import type { Route } from "./+types/home";
 
@@ -23,7 +23,10 @@ export function loader({ context }: Route.LoaderArgs) {
     })),
   }));
   return {
+    siteUrl: site.siteUrl,
+    repoUrl: site.repoUrl,
     url: `${site.siteUrl}/`,
+    markdownPath: site.markdownPath("/"),
     regions,
     kinds: (Object.keys(site.kinds) as SourceKind[]).map((id) => ({ id, ...site.kinds[id] })),
     sourceCount: site.counts.sources,
@@ -35,7 +38,39 @@ export function loader({ context }: Route.LoaderArgs) {
 export const shouldRevalidate = () => false;
 
 export function meta({ loaderData }: Route.MetaArgs) {
-  return pageMeta({ title: "Context Atlas", url: loaderData?.url });
+  if (!loaderData) return [];
+  const { siteUrl, repoUrl, url, markdownPath, regions, topicCount } = loaderData;
+  return pageMeta({
+    title: "Context Atlas: llms.txt, MCP servers and agent docs for your tech stack",
+    siteUrl,
+    url,
+    markdownPath,
+    jsonLd: [
+      ld.organization(siteUrl, repoUrl),
+      ld.website(siteUrl, defaultDescription),
+      {
+        "@type": "CollectionPage",
+        "@id": url,
+        url,
+        name: "Context Atlas",
+        description: defaultDescription,
+        isPartOf: { "@id": ld.websiteId(siteUrl) },
+        mainEntity: {
+          "@type": "ItemList",
+          name: "Tools with sources for coding agents",
+          numberOfItems: topicCount,
+          itemListElement: regions
+            .flatMap((region) => region.topics)
+            .map((topic, index) => ({
+              "@type": "ListItem",
+              position: index + 1,
+              name: topic.name,
+              url: `${siteUrl}${topicPagePath(topic.id)}`,
+            })),
+        },
+      },
+    ],
+  });
 }
 
 type Data = Route.ComponentProps["loaderData"];
@@ -311,12 +346,22 @@ function SourceBrowser({ data }: { data: Data }) {
 function TopicCard({ topic, kinds }: { topic: Regions[number]["topics"][number]; kinds: Data["kinds"] }) {
   const label = (kind: SourceKind) => kinds.find((k) => k.id === kind)?.label ?? kind;
   return (
-    <article id={topic.id} data-topic className="scroll-mt-6 border-t-2 border-ink pt-3 target:border-sea">
+    // Off-screen cards skip style, layout and paint until they scroll near (content-visibility): on a
+    // mid-range phone this cuts the main-thread work of the first load by more than half, since every
+    // font that arrives lays the page out again. Find-in-page and anchors still reach them. The size
+    // stands in until a card is first drawn; it is a little taller than the card at any width, so the
+    // links of a skipped card never reach into the next one.
+    <article
+      id={topic.id}
+      data-topic
+      className="scroll-mt-6 border-t-2 border-ink pt-3 [content-visibility:auto] target:border-sea"
+      style={{ containIntrinsicSize: `auto ${130 + 60 * topic.sources.length}px` }}
+    >
       <div className="flex flex-wrap items-baseline justify-between gap-x-3">
         <h3 className="text-2xl font-bold">
-          <a href={`#${topic.id}`} className="no-underline hover:underline">
+          <Link to={topicPagePath(topic.id)} prefetch="intent" className="no-underline hover:underline">
             {topic.name}
-          </a>
+          </Link>
         </h3>
         <span className="font-sans text-sm text-sea">{topic.role}</span>
       </div>
@@ -342,7 +387,10 @@ function TopicCard({ topic, kinds }: { topic: Regions[number]["topics"][number];
         ))}
       </ul>
       <p className="mt-2 font-sans text-sm text-ink-soft">
-        For agents:{" "}
+        <Link to={topicPagePath(topic.id)} prefetch="intent" className="underline hover:text-ink">
+          Signals and related tools
+        </Link>
+        {" · "}For agents:{" "}
         <a href={`/llms/${topic.id}.txt`} className="underline hover:text-ink">
           {topic.id}.txt
         </a>

@@ -1,3 +1,4 @@
+import { topicPagePath } from "@contextatlas/core/format";
 import { Command } from "cmdk";
 import { type MouseEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
@@ -126,7 +127,7 @@ export function CommandPalette({ topics, docs }: Props) {
               key={topic.id}
               value={`${topic.name} ${topic.id}`}
               keywords={[topic.role, topic.region]}
-              onSelect={() => go(`/#${topic.id}`)}
+              onSelect={() => go(topicPagePath(topic.id))}
               className={item}
             >
               <span className="font-medium">{topic.name}</span>

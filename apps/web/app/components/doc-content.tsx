@@ -77,7 +77,7 @@ function addCopyButton(pre: HTMLPreElement) {
   button.type = "button";
   button.textContent = "Copy";
   button.className =
-    "absolute right-2 top-2 rounded-full border border-contour bg-paper px-3 py-0.5 font-sans text-sm text-ink-soft opacity-80 hover:text-ink hover:opacity-100 focus-visible:opacity-100";
+    "absolute right-2 top-2 rounded-full border border-contour bg-paper px-3 py-0.5 font-sans text-sm text-ink-soft hover:text-ink";
   let timer: ReturnType<typeof setTimeout> | undefined;
   button.addEventListener("click", async () => {
     clearTimeout(timer);

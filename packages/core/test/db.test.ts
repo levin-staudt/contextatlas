@@ -6,10 +6,12 @@ import {
   buildLlmsTxt,
   buildTopicTxt,
   catalog,
+  flattenTopics,
   getCatalog,
   getTopic,
   openDatabase,
   rebuildDatabaseFile,
+  relatedTopics,
   search,
   seedDatabase,
   toFtsQuery,
@@ -112,5 +114,19 @@ describe("llms.txt", () => {
     expect(buildTopicTxt(topic, catalog.updatedAt)).toContain(
       "Signals: vercel.json, vercel.ts, .vercel/, @vercel/* dependencies",
     );
+  });
+});
+
+describe("relatedTopics", () => {
+  const topics = flattenTopics(getCatalog(seeded()));
+  const ids = (id: string) => relatedTopics(topics, id).map((topic) => topic.id);
+
+  test("alternatives with a similar role come first", () => {
+    expect(ids("neon").slice(0, 2)).toContain("supabase");
+  });
+
+  test("two-letter role words such as AI count", () => {
+    expect(ids("openrouter").slice(0, 4)).toEqual(expect.arrayContaining(["claude", "ai-sdk"]));
+    expect(ids("ai-sdk").slice(0, 4)).toEqual(expect.arrayContaining(["claude", "cloudflare-agents"]));
   });
 });

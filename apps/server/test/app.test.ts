@@ -1,7 +1,18 @@
 import { beforeAll, describe, expect, spyOn, test } from "bun:test";
-import { catalog, loadDocs, openDatabase, seedDatabase, siteUrl } from "@contextatlas/core";
+import {
+  catalog,
+  indexNowKey,
+  loadDocs,
+  mcpRegistryName,
+  mcpUrl,
+  openDatabase,
+  seedDatabase,
+  siteUrl,
+} from "@contextatlas/core";
 import { hc } from "hono/client";
 import { type AppType, createApp } from "../src/app";
+import { version } from "../src/mcp";
+import type { openApiSpec } from "../src/openapi";
 import { loadWebBuild } from "../src/web";
 
 const db = openDatabase(":memory:");
@@ -24,8 +35,11 @@ describe("pages", () => {
     expect(res.status).toBe(200);
     expect(res.headers.get("cache-control")).toContain("s-maxage=86400");
     const html = await res.text();
-    expect(html).toContain("<title>Context Atlas</title>");
+    expect(html).toContain("<title>Context Atlas: llms.txt, MCP servers and agent docs for your tech stack</title>");
     expect(html).toContain('<meta name="description"');
+    expect(html).toContain(`<meta property="og:image" content="${siteUrl}/og.png"/>`);
+    expect(html).toContain('<meta name="twitter:card" content="summary_large_image"/>');
+    expect(html).toContain('href="/topics/vercel"');
     expect(html).toContain('<link rel="alternate" type="text/plain" href="/llms.txt"/>');
     expect(html).toContain('<link rel="alternate" type="application/json" href="/atlas.json"/>');
     expect(html.match(/<article id="[^"]+" data-topic/g)?.length).toBe(topicCount);
@@ -66,6 +80,73 @@ describe("pages", () => {
     expect(await head.text()).toBe("");
   });
 
+  test("every topic has a page with metadata, sources, signals and related tools", async () => {
+    const res = await site.request("/topics/neon");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("cache-control")).toContain("s-maxage=86400");
+    expect(res.headers.get("vary")?.split(", ")).toContain("Accept");
+    expect(res.headers.get("link")).toBe('</topics/neon.md>; rel="alternate"; type="text/markdown"');
+    const html = await res.text();
+    expect(html).toContain("<title>Neon for coding agents: llms.txt, MCP and docs · Context Atlas</title>");
+    expect(html).toContain(`<link rel="canonical" href="${siteUrl}/topics/neon"/>`);
+    expect(html).toContain('<meta name="description" content="Neon (Postgres database) for coding agents:');
+    expect(html).toContain("@neondatabase/serverless");
+    expect(html).toContain('href="/llms/neon.txt"');
+    // Related tools: other databases come first.
+    expect(html).toContain('href="/topics/supabase"');
+    for (const region of catalog.regions)
+      for (const topic of region.topics) expect((await site.request(`/topics/${topic.id}`)).status).toBe(200);
+    const missing = await site.request("/topics/nope");
+    expect(missing.status).toBe(404);
+    expect(missing.headers.get("cache-control")).toBe("no-store");
+  });
+
+  test("pages carry JSON-LD structured data", async () => {
+    const graph = async (path: string) => {
+      const html = await (await site.request(path)).text();
+      const json = html.match(/<script type="application\/ld\+json">(.+?)<\/script>/)?.[1];
+      expect(json).toBeDefined();
+      const data = JSON.parse(json!.replaceAll("&quot;", '"').replaceAll("&amp;", "&")) as {
+        "@graph": { "@type": string }[];
+      };
+      return data["@graph"].map((node) => node["@type"]);
+    };
+    expect(await graph("/")).toEqual(["Organization", "WebSite", "CollectionPage"]);
+    expect(await graph("/agent")).toEqual(["Organization", "WebPage", "BreadcrumbList"]);
+    expect(await graph("/docs/mcp")).toEqual(["Organization", "TechArticle", "BreadcrumbList"]);
+    expect(await graph("/topics/vercel")).toEqual(["Organization", "WebPage", "BreadcrumbList"]);
+  });
+
+  test("pages answer Accept: text/markdown with Markdown under the same URL", async () => {
+    const md = { accept: "text/markdown" };
+    const cases: [string, string][] = [
+      ["/", "# Context Atlas\n"],
+      ["/agent", "# Agent prompt · Context Atlas"],
+      ["/docs", "# "],
+      ["/docs/mcp", "# MCP server\n"],
+      ["/topics/vercel", "# Vercel · Context Atlas"],
+    ];
+    for (const [path, start] of cases) {
+      const res = await site.request(path, { headers: md });
+      expect(res.status).toBe(200);
+      expect(res.headers.get("content-type")).toBe("text/markdown; charset=utf-8");
+      expect(res.headers.get("vary")?.split(", ")).toContain("Accept");
+      expect(await res.text()).toStartWith(start);
+    }
+    const html = await site.request("/", { headers: { accept: "text/html,application/xhtml+xml,*/*;q=0.8" } });
+    expect(html.headers.get("content-type")).toStartWith("text/html");
+    expect(html.headers.get("vary")?.split(", ")).toContain("Accept");
+    // Markdown wins only when preferred over HTML.
+    const both = await site.request("/", { headers: { accept: "text/html, text/markdown;q=0.5" } });
+    expect(both.headers.get("content-type")).toStartWith("text/html");
+
+    const missing = await site.request("/nope", { headers: md });
+    expect(missing.status).toBe(404);
+    expect(missing.headers.get("content-type")).toBe("text/markdown; charset=utf-8");
+    expect(missing.headers.get("cache-control")).toBe("no-store");
+    expect(await missing.text()).toContain(`${siteUrl}/llms.txt`);
+  });
+
   test("only hashed assets are cached for good", async () => {
     expect((await site.request("/favicon.svg")).headers.get("cache-control")).toBe("public, max-age=3600");
     const html = await (await site.request("/")).text();
@@ -82,12 +163,25 @@ describe("pages", () => {
         throw new Error("page renderer called");
       },
     });
-    for (const path of ["/llms.txt", "/llms-full.txt", "/llms/vercel.txt", "/atlas.json", "/docs/mcp.md"]) {
+    for (const path of [
+      "/llms.txt",
+      "/llms-full.txt",
+      "/llms/vercel.txt",
+      "/atlas.json",
+      "/docs/mcp.md",
+      "/index.md",
+      "/agent.md",
+      "/topics/vercel.md",
+      "/openapi.json",
+      "/.well-known/mcp/server-card.json",
+    ]) {
       expect((await spy.request(path)).status).toBe(200);
     }
     for (const path of ["/api/topics", "/sitemap.xml", "/robots.txt", "/healthz"]) await spy.request(path);
     for (const path of ["/llms/nope.txt", "/docs/nope.md", "/api/nope"])
       expect((await spy.request(path)).status).toBe(404);
+    for (const path of ["/", "/topics/vercel", "/nope"])
+      await spy.request(path, { headers: { accept: "text/markdown" } });
     expect(renders).toBe(0);
     // The stub throws on purpose; keep React Router's error log out of the test output.
     const quiet = spyOn(console, "error").mockImplementation(() => {});
@@ -107,7 +201,11 @@ describe("docs", () => {
     const home = await site.request("/docs");
     expect(home.status).toBe(200);
     expect(home.headers.get("cache-control")).toContain("s-maxage=86400");
-    expect(await home.text()).toContain("<title>Docs · Context Atlas</title>");
+    // The header and the tag in the page announce the same Markdown copy.
+    expect(home.headers.get("link")).toBe('</docs/index.md>; rel="alternate"; type="text/markdown"');
+    const homeHtml = await home.text();
+    expect(homeHtml).toContain("<title>Docs · Context Atlas</title>");
+    expect(homeHtml).toContain('<link rel="alternate" type="text/markdown" href="/docs/index.md"/>');
 
     const html = await (await site.request("/docs/mcp")).text();
     expect(html).toContain("<title>MCP server · Context Atlas docs</title>");
@@ -185,14 +283,57 @@ describe("agent files", () => {
     expect(data.regions[0]?.topics[0]?.llmsTxt).toStartWith(`${siteUrl}/llms/`);
   });
 
+  test("Markdown copies of the pages", async () => {
+    const home = await app.request("/index.md");
+    expect(home.headers.get("content-type")).toBe("text/markdown; charset=utf-8");
+    expect(home.headers.get("link")).toBe(`<${siteUrl}/>; rel="canonical"`);
+    expect(await home.text()).toStartWith("# Context Atlas\n");
+    const agent = await (await app.request("/agent.md")).text();
+    expect(agent).toContain(`Read ${siteUrl}/llms.txt`);
+    expect(agent).toContain(`claude mcp add --transport http contextatlas ${mcpUrl}`);
+    const topic = await app.request("/topics/neon.md");
+    expect(topic.headers.get("link")).toBe(`<${siteUrl}/topics/neon>; rel="canonical"`);
+    const body = await topic.text();
+    expect(body).toStartWith("# Neon · Context Atlas");
+    expect(body).toContain("Related topics:");
+    expect(body).toContain(`(${siteUrl}/topics/supabase)`);
+    // An unknown .md is a Markdown 404 with pointers, also when the pages are rendered.
+    for (const client of [app, await pageApp()]) {
+      const missing = await client.request("/topics/nope.md");
+      expect(missing.status).toBe(404);
+      expect(missing.headers.get("content-type")).toBe("text/markdown; charset=utf-8");
+      expect(missing.headers.get("cache-control")).toBe("no-store");
+      expect(await missing.text()).toContain(`${siteUrl}/llms.txt`);
+    }
+  });
+
+  test("robots.txt allows search engines and AI crawlers and points to the sitemap", async () => {
+    const body = await (await app.request("/robots.txt")).text();
+    for (const bot of ["GPTBot", "ClaudeBot", "PerplexityBot", "Google-Extended", "*"])
+      expect(body).toContain(`User-agent: ${bot}\n`);
+    expect(body).toContain("Allow: /\n");
+    expect(body).not.toMatch(/^Disallow: \/$/m);
+    // Route data stays out of the index, with or without a query string.
+    expect(body).toContain("Disallow: /*.data$\n");
+    expect(body).toContain("Disallow: /*.data?\n");
+    expect(body).toContain(`Sitemap: ${siteUrl}/sitemap.xml`);
+  });
+
+  test("IndexNow key file", async () => {
+    const res = await app.request(`/${indexNowKey}.txt`);
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe(indexNowKey);
+  });
+
   test("sitemap.xml has lastmod for every URL", async () => {
     const xml = await (await app.request("/sitemap.xml")).text();
-    const count = 5 + topicCount + docCount;
+    const count = 6 + 2 * topicCount + docCount;
     expect(xml.match(/<url>/g)?.length).toBe(count);
     expect(xml.match(/<lastmod>/g)?.length).toBe(count);
     const mcp = loadDocs().find((page) => page.slug === "mcp")!;
     expect(xml).toContain(`<loc>${siteUrl}/docs/mcp</loc><lastmod>${mcp.updatedAt}</lastmod>`);
     expect(xml).not.toContain(".md</loc>");
+    expect(xml).toContain(`<loc>${siteUrl}/topics/vercel</loc>`);
   });
 });
 
@@ -238,6 +379,25 @@ describe("api", () => {
   });
 });
 
+describe("openapi", () => {
+  test("is served with every API route documented", async () => {
+    const res = await app.request("/openapi.json");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("access-control-allow-origin")).toBe("*");
+    const spec = (await res.json()) as typeof openApiSpec;
+    expect(spec.openapi).toBe("3.1.0");
+    expect(spec.servers[0].url).toBe(siteUrl);
+    const documented = Object.keys(spec.paths).map((path) => path.replace(/\{(\w+)\}/g, ":$1"));
+    const routes = app.routes
+      .filter((route) => route.method === "GET" && route.path.startsWith("/api/") && !route.path.includes("*"))
+      .map((route) => route.path);
+    expect([...new Set(routes)].sort()).toEqual(documented.sort());
+    const ids = Object.values(spec.paths).map((path) => path.get.operationId);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const path of Object.values(spec.paths)) expect(path.get.description.length).toBeGreaterThan(20);
+  });
+});
+
 describe("mcp", () => {
   async function rpc(method: string, params: unknown = {}) {
     const res = await app.request("/mcp", {
@@ -275,9 +435,34 @@ describe("mcp", () => {
 
   test("get_topic returns a topic or an error", async () => {
     const ok = await rpc("tools/call", { name: "get_topic", arguments: { id: "drizzle" } });
-    expect(JSON.parse(ok.result.content[0].text).topic.llmsTxt).toBe(`${siteUrl}/llms/drizzle.txt`);
+    const topic = JSON.parse(ok.result.content[0].text).topic;
+    expect(topic.llmsTxt).toBe(`${siteUrl}/llms/drizzle.txt`);
+    expect(topic.page).toBe(`${siteUrl}/topics/drizzle`);
     const missing = await rpc("tools/call", { name: "get_topic", arguments: { id: "nope" } });
     expect(missing.result.isError).toBe(true);
+  });
+
+  test("server card lists the live tools and the endpoint", async () => {
+    const res = await app.request("/.well-known/mcp/server-card.json");
+    expect(res.status).toBe(200);
+    const card = (await res.json()) as any;
+    expect(card.serverInfo).toEqual({ name: "contextatlas", title: "Context Atlas", version });
+    expect(card.transport).toEqual({ type: "streamable-http", endpoint: mcpUrl });
+    expect(card.authentication.required).toBe(false);
+    expect(card.tools.map((tool: { name: string }) => tool.name).sort()).toEqual([
+      "get_topic",
+      "list_topics",
+      "search",
+    ]);
+    expect(await (await app.request("/.well-known/mcp.json")).json()).toEqual(card);
+  });
+
+  test("server.json for the MCP Registry matches the server", async () => {
+    const server = (await Bun.file(new URL("../../../server.json", import.meta.url)).json()) as any;
+    expect(server.name).toBe(mcpRegistryName);
+    expect(server.version).toBe(version);
+    expect(server.description.length).toBeLessThanOrEqual(100);
+    expect(server.remotes).toEqual([{ type: "streamable-http", url: "https://contextatlas.dev/mcp" }]);
   });
 
   test("GET is not allowed on a stateless server", async () => {
