@@ -1,6 +1,9 @@
 import {
+  type AdminDb,
+  authenticate,
   buildNotFoundMarkdown,
   buildTopicTxt,
+  createRateLimiter,
   type Db,
   getUpdatedAt,
   indexNowKey,
@@ -12,10 +15,11 @@ import { serveStatic } from "hono/bun";
 import { compress } from "hono/compress";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
+import { defaultSubmissionLimit, handleAdminMcpRequest, type RateLimiter } from "./admin-mcp";
 import { createApi } from "./api";
 import { publicDir } from "./assets";
 import { agentCacheControl, noStore, pageCacheControl } from "./cache";
-import { buildServerCard, handleMcpRequest } from "./mcp";
+import { buildServerCard, handleMcpRequest, jsonRpcError } from "./mcp";
 import { prefersMarkdown } from "./negotiate";
 import { openApiSpec } from "./openapi";
 import { loadSnapshot } from "./snapshot";
@@ -66,6 +70,10 @@ type Options = {
   /** The pages for people (apps/web). Without it every page path is a plain 404, which API tests use. */
   web?: WebBuild;
   mode?: "production" | "development";
+  /** The admin database behind the write MCP at /mcp/admin. Without it /mcp/admin is a 404. */
+  admin?: AdminDb;
+  /** Submissions per token, default ADMIN_RATE_LIMIT per hour. Tests pass their own. */
+  limiter?: RateLimiter;
 };
 
 /**
@@ -73,7 +81,16 @@ type Options = {
  * Router pages of apps/web. A thin shell around packages/core that only reads from the database.
  * Tests call `createApp(db, { web }).request(...)` without starting a server.
  */
-export function createApp(db: Db, { log = false, web, mode = "production" }: Options = {}) {
+export function createApp(
+  db: Db,
+  {
+    log = false,
+    web,
+    mode = "production",
+    admin,
+    limiter = createRateLimiter({ limit: defaultSubmissionLimit, windowMs: 60 * 60 * 1000 }),
+  }: Options = {},
+) {
   const snapshot = loadSnapshot(db);
   const renderPage = web && createWebHandler(web, snapshot.site, mode);
   const app = new Hono();
@@ -85,6 +102,7 @@ export function createApp(db: Db, { log = false, web, mode = "production" }: Opt
   for (const path of [
     "/api/*",
     "/mcp",
+    "/mcp/admin",
     "/llms.txt",
     "/llms-full.txt",
     "/llms/*",
@@ -185,11 +203,39 @@ export function createApp(db: Db, { log = false, web, mode = "production" }: Opt
   app.all("/mcp", async (c) => {
     if (c.req.method !== "POST") {
       // Stateless server: no SSE stream to resume (GET) and no session to end (DELETE).
-      return c.json({ jsonrpc: "2.0", error: { code: -32000, message: "Method not allowed." }, id: null }, 405, {
-        allow: "POST",
-      });
+      return c.json(jsonRpcError("Method not allowed."), 405, { allow: "POST" });
     }
     return handleMcpRequest(db, snapshot, c.req.raw);
+  });
+
+  // The write MCP (#19). Every request needs an active bearer token from `contextatlas admin token create`.
+  app.all("/mcp/admin", async (c) => {
+    c.header("cache-control", noStore);
+    const rpcError = (status: 401 | 404 | 405, message: string) => c.json(jsonRpcError(message), status);
+    if (!admin) return rpcError(404, "Write access is not enabled on this server.");
+    // Before the token check, so GET or DELETE probes never touch the database or a token's lastUsedAt.
+    if (c.req.method !== "POST") {
+      c.header("allow", "POST");
+      return rpcError(405, "Method not allowed.");
+    }
+    const bearer = /^Bearer\s+(\S+)$/i.exec(c.req.header("authorization") ?? "")?.[1];
+    const token = bearer ? authenticate(admin, bearer) : undefined;
+    if (!token) {
+      c.header(
+        "www-authenticate",
+        bearer ? 'Bearer realm="contextatlas", error="invalid_token"' : 'Bearer realm="contextatlas"',
+      );
+      return rpcError(
+        401,
+        bearer
+          ? "Invalid or revoked token."
+          : `Send "Authorization: Bearer <token>". See ${siteUrl}/docs/mcp-submissions.md`,
+      );
+    }
+    const res = await handleAdminMcpRequest(db, snapshot, { admin, token, limiter }, c.req.raw);
+    const response = new Response(res.body, res);
+    response.headers.set("cache-control", noStore);
+    return response;
   });
 
   app.use(

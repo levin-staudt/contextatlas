@@ -5,6 +5,7 @@ import { type Db, migrateDatabase, openDatabase } from "./db";
 import { formatSignal } from "./format";
 import * as schema from "./schema";
 import type { Catalog } from "./types";
+import { catalogSchema } from "./validation";
 
 export type SeedResult = { regions: number; topics: number; sources: number; signals: number };
 
@@ -12,8 +13,11 @@ export type SeedResult = { regions: number; topics: number; sources: number; sig
  * Imports the catalog into the database. Idempotent: it runs the migrations, then replaces every
  * catalog row and the search index in one transaction, so running it twice gives the same database
  * and readers never see a half-written catalog. Runs on every deploy before the server starts.
+ * Throws if the catalog does not match `catalogSchema`.
  */
 export function seedDatabase(db: Db, catalog: Catalog = defaultCatalog): SeedResult {
+  // The same schema checks every submission to the write MCP, so the two never disagree.
+  catalogSchema.parse(catalog);
   migrateDatabase(db);
   const result: SeedResult = { regions: 0, topics: 0, sources: 0, signals: 0 };
 

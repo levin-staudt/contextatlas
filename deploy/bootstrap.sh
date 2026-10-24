@@ -42,9 +42,11 @@ chmod 0600 /home/deploy/.ssh/authorized_keys
 install -d -o deploy -g deploy /opt/contextatlas /opt/contextatlas/releases
 install -d -o contextatlas -g contextatlas /var/lib/contextatlas
 install -m 0755 "$here/activate.sh" /usr/local/bin/contextatlas-activate
+install -m 0755 "$here/admin.sh" /usr/local/bin/contextatlas-admin
 
 cat > /etc/sudoers.d/contextatlas-deploy <<'SUDO'
 deploy ALL=(root) NOPASSWD: /usr/bin/systemctl restart contextatlas, /usr/bin/systemctl status contextatlas, /usr/bin/systemctl status contextatlas *, /usr/bin/journalctl -u contextatlas *
+deploy ALL=(contextatlas) NOPASSWD: /usr/local/bin/contextatlas-admin, /usr/local/bin/contextatlas-admin *
 SUDO
 chmod 0440 /etc/sudoers.d/contextatlas-deploy
 visudo -cf /etc/sudoers.d/contextatlas-deploy

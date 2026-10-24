@@ -7,6 +7,8 @@ export const siteUrl = (process.env.SITE_URL ?? "https://contextatlas.dev").repl
 
 export const llmsUrl = `${siteUrl}/llms.txt`;
 export const mcpUrl = `${siteUrl}/mcp`;
+/** The write MCP (#19): submissions for review, with a bearer token. */
+export const adminMcpUrl = `${siteUrl}/mcp/admin`;
 export const openApiUrl = `${siteUrl}/openapi.json`;
 
 /** The name of the remote MCP server in the official MCP Registry (server.json in the repo root). */

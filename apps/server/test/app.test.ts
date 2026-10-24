@@ -1,12 +1,18 @@
 import { beforeAll, describe, expect, spyOn, test } from "bun:test";
 import {
   catalog,
+  createRateLimiter,
+  createToken,
   glamaUrl,
   indexNowKey,
+  listAudit,
+  listSubmissions,
+  listTokens,
   loadDocs,
   mcpRegistryName,
   mcpRegistryUrl,
   mcpUrl,
+  openAdminDatabase,
   openDatabase,
   repoUrl,
   seedDatabase,
@@ -190,6 +196,7 @@ describe("pages", () => {
     ]) {
       expect((await spy.request(path)).status).toBe(200);
     }
+    expect((await spy.request("/mcp/admin", { method: "POST" })).status).toBe(404);
     for (const path of ["/api/topics", "/sitemap.xml", "/robots.txt", "/healthz"]) await spy.request(path);
     for (const path of ["/llms/nope.txt", "/docs/nope.md", "/api/nope"])
       expect((await spy.request(path)).status).toBe(404);
@@ -489,5 +496,128 @@ describe("mcp", () => {
 
   test("GET is not allowed on a stateless server", async () => {
     expect((await app.request("/mcp")).status).toBe(405);
+  });
+});
+
+describe("write mcp", () => {
+  const admin = openAdminDatabase(":memory:");
+  const { token } = createToken(admin, "test agent");
+  const writable = createApp(db, { admin, limiter: createRateLimiter({ limit: 3, windowMs: 60_000 }) });
+
+  async function rpc(method: string, params: unknown = {}, bearer: string | null = token) {
+    return writable.request("/mcp/admin", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+        ...(bearer ? { authorization: `Bearer ${bearer}` } : {}),
+      },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+    });
+  }
+  async function call(name: string, args: unknown) {
+    const res = await rpc("tools/call", { name, arguments: args });
+    expect(res.status).toBe(200);
+    const { result } = (await res.json()) as { result: any };
+    const text: string = result.content[0].text;
+    // Input the schema rejects comes back from the SDK as plain text, everything else as JSON.
+    return { isError: result.isError === true, body: text.startsWith("{") ? JSON.parse(text) : text };
+  }
+
+  test("rejects requests without or with a wrong token", async () => {
+    const missing = await rpc("tools/list", {}, null);
+    expect(missing.status).toBe(401);
+    expect(missing.headers.get("www-authenticate")).toBe('Bearer realm="contextatlas"');
+    expect(missing.headers.get("cache-control")).toBe("no-store");
+    const wrong = await rpc("tools/call", { name: "add_source", arguments: {} }, "ca_wrong");
+    expect(wrong.status).toBe(401);
+    expect(wrong.headers.get("www-authenticate")).toContain('error="invalid_token"');
+    expect(listSubmissions(admin)).toHaveLength(0);
+  });
+
+  test("other methods get 405 without touching the token", async () => {
+    const res = await writable.request("/mcp/admin", { headers: { authorization: `Bearer ${token}` } });
+    expect(res.status).toBe(405);
+    expect(res.headers.get("allow")).toBe("POST");
+    expect(((await res.json()) as any).error.code).toBe(-32000);
+    expect(listTokens(admin)[0]?.lastUsedAt).toBeNull();
+  });
+
+  test("lists the read and write tools", async () => {
+    const { result } = (await (await rpc("tools/list")).json()) as { result: any };
+    expect(result.tools.map((tool: { name: string }) => tool.name).sort()).toEqual([
+      "add_source",
+      "add_topic",
+      "get_submission",
+      "get_topic",
+      "list_submissions",
+      "list_topics",
+      "propose_change",
+      "search",
+      "update_topic",
+    ]);
+  });
+
+  test("a submission lands in the review queue, not in the catalog", async () => {
+    const source = { kind: "docs", title: "Vercel CLI", url: "https://vercel.com/docs/cli" };
+    const { isError, body } = await call("add_source", { topicId: "vercel", source, reason: "Official CLI docs" });
+    expect(isError).toBe(false);
+    expect(body.submission).toMatchObject({ type: "add_source", topicId: "vercel", status: "pending" });
+    expect(body.submission.tokenId).toBeUndefined();
+    const [row] = listSubmissions(admin, { status: "pending" });
+    expect(row?.payload).toEqual({ topicId: "vercel", source, reason: "Official CLI docs" });
+    expect(listAudit(admin)[0]).toMatchObject({ action: "submission.create", submissionId: row?.id });
+    const live = (await (await app.request("/api/topics/vercel")).json()) as any;
+    expect(live.topic.sources.map((s: { url: string }) => s.url)).not.toContain(source.url);
+
+    const own = await call("get_submission", { id: row?.id });
+    expect(own.body.submission.status).toBe("pending");
+    expect((await call("list_submissions", {})).body.submissions).toHaveLength(1);
+  });
+
+  test("invalid submissions are refused before the queue", async () => {
+    const before = listSubmissions(admin).length;
+    const http = await call("add_source", {
+      topicId: "vercel",
+      source: { kind: "docs", title: "x", url: "http://example.com" },
+    });
+    expect(http.isError).toBe(true);
+    expect(http.body).toContain("Must be an https URL");
+    const duplicate = await call("add_source", {
+      topicId: "vercel",
+      source: { kind: "llms", title: "Again", url: "https://vercel.com/llms.txt" },
+    });
+    expect(duplicate.body.error.code).toBe("invalid");
+    const source = { kind: "llms", title: "x", url: "https://example.com/llms.txt" };
+    const regionId = await call("add_topic", {
+      region: "cloud",
+      topic: { id: "cloud", name: "Cloud", role: "Hosting", signals: [], sources: [source] },
+    });
+    expect(regionId.body.error.message).toContain("region id");
+    expect(listSubmissions(admin)).toHaveLength(before);
+    expect(listAudit(admin, 2).map((entry) => entry.action)).toEqual(["submission.invalid", "submission.invalid"]);
+  });
+
+  test("each token has a rate limit", async () => {
+    // The limiter allows three write calls, refused ones included; the tests above used all of them.
+    // (Input the SDK's schema rejects never reaches the tool, so it does not count.)
+    const message = "The Supabase entry should link the CLI reference.";
+    const limited = await call("propose_change", { message });
+    expect(limited.body.error.code).toBe("rate_limited");
+  });
+
+  test("the public MCP stays open and read-only", async () => {
+    const res = await writable.request("/mcp", {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json, text/event-stream" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} }),
+    });
+    expect(res.status).toBe(200);
+    const { result } = (await res.json()) as { result: any };
+    expect(result.tools.map((tool: { name: string }) => tool.name).sort()).toEqual([
+      "get_topic",
+      "list_topics",
+      "search",
+    ]);
   });
 });

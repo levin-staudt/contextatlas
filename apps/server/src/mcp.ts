@@ -20,7 +20,12 @@ import type { Snapshot } from "./snapshot";
 
 export const version = "1.0.0";
 
-function json(value: unknown) {
+/** A JSON-RPC error body for HTTP-level refusals (405, 401, 404) on /mcp and /mcp/admin. */
+export function jsonRpcError(message: string) {
+  return { jsonrpc: "2.0" as const, error: { code: -32000, message }, id: null };
+}
+
+export function json(value: unknown) {
   return { content: [{ type: "text" as const, text: JSON.stringify(value, null, 2) }] };
 }
 
@@ -33,7 +38,12 @@ const instructions =
 /** The tools are thin wrappers around packages/core, the same functions the JSON API uses. */
 export function createMcpServer(db: Db, snapshot: Snapshot) {
   const server = new McpServer(serverInfo, { instructions });
+  registerReadTools(server, db, snapshot);
+  return server;
+}
 
+/** The read-only tools, also offered on the write MCP so an agent can check before it submits. */
+export function registerReadTools(server: McpServer, db: Db, snapshot: Snapshot) {
   server.registerTool(
     "search",
     {
@@ -99,8 +109,6 @@ export function createMcpServer(db: Db, snapshot: Snapshot) {
           .map(({ id, name, role, region: { id: regionId } }) => ({ id, name, role, region: regionId })),
       }),
   );
-
-  return server;
 }
 
 /**

@@ -3,7 +3,13 @@
 // apps/web/public) and passes everything else to Hono, which renders pages from Vite's live build.
 import { createServer as createHttpServer } from "node:http";
 import { join } from "node:path";
-import { defaultDatabasePath, openDatabase, rebuildDatabaseFile } from "@contextatlas/core";
+import {
+  defaultAdminDatabasePath,
+  defaultDatabasePath,
+  openAdminDatabaseOrWarn,
+  openDatabase,
+  rebuildDatabaseFile,
+} from "@contextatlas/core";
 import { getRequestListener } from "@hono/node-server";
 import type { ServerBuild } from "react-router";
 import { createServer as createViteServer } from "vite";
@@ -28,6 +34,7 @@ const vite = await createViteServer({
 const app = createApp(openDatabase(defaultDatabasePath, { readonly: true }), {
   log: true,
   mode: "development",
+  admin: openAdminDatabaseOrWarn(defaultAdminDatabasePath),
   web: () => vite.ssrLoadModule("virtual:react-router/server-build") as Promise<ServerBuild>,
 });
 const handle = getRequestListener(app.fetch);

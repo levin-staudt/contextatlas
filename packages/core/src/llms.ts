@@ -1,7 +1,7 @@
 import { kinds } from "./catalog";
 import { buildDocMarkdown, type DocPage, mapOutsideCode } from "./docs";
 import { formatSignal } from "./format";
-import { llmsUrl, mcpUrl, openApiUrl, siteUrl, topicPageUrl } from "./site";
+import { adminMcpUrl, llmsUrl, mcpUrl, openApiUrl, siteUrl, topicPageUrl } from "./site";
 import type { Catalog, Topic } from "./types";
 
 function topicBlock(topic: Topic) {
@@ -113,6 +113,7 @@ Last updated: ${catalog.updatedAt}. The same data as JSON: ${siteUrl}/atlas.json
 Other ways to query the catalog:
 
 - MCP server (Streamable HTTP, no auth): ${mcpUrl}, with the tools \`search\`, \`get_topic\` and \`list_topics\`. Add it with \`claude mcp add --transport http contextatlas ${mcpUrl}\`.
+- Write MCP for submitting additions and fixes, with a bearer token from the maintainer: ${adminMcpUrl}. Submissions go to a review queue. See ${siteUrl}/docs/mcp-submissions.md.
 - JSON API: ${siteUrl}/api/search?q=<words> (full-text search, optional \`kind\` and \`limit\`), ${siteUrl}/api/topics and ${siteUrl}/api/topics/<id>. OpenAPI spec: ${openApiUrl}.
 - Every page as Markdown: request it with \`Accept: text/markdown\`, or add \`.md\` to the path (${siteUrl}/agent.md, ${siteUrl}/topics/vercel.md, ${siteUrl}/docs/mcp.md).
 ${docsList(docs)}

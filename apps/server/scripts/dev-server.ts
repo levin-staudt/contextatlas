@@ -10,6 +10,7 @@ const watched = [
   join(root, "src"),
   join(root, "../../packages/core/src"),
   join(root, "../../packages/core/drizzle"),
+  join(root, "../../packages/core/drizzle-admin"),
   join(root, "../../packages/core/docs"),
 ];
 

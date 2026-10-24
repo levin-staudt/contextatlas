@@ -109,6 +109,8 @@ export function loadSnapshot(db: Db) {
     updatedAt: catalog.updatedAt,
     topics,
     topic: (id: string) => byId.get(id),
+    /** What the write MCP checks submissions against. */
+    catalogLookup: { topic: (id: string) => byId.get(id), regionIds: catalog.regions.map((region) => region.id) },
     docs,
     llmsTxt,
     llmsFullTxt: buildLlmsFullTxt(catalog, docs.pages),
