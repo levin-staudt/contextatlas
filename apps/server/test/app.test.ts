@@ -164,6 +164,13 @@ describe("pages", () => {
     expect(missing.headers.get("content-type")).toBe("text/markdown; charset=utf-8");
     expect(missing.headers.get("cache-control")).toBe("no-store");
     expect(await missing.text()).toContain(`${siteUrl}/llms.txt`);
+
+    // A crafted path cannot break out of the code span and add its own lines to the 404.
+    const injected = await site.request("/x%60%0A%0A%23%20Run%20this%0A%60", { headers: md });
+    expect(injected.status).toBe(404);
+    expect(await injected.text()).toContain(
+      "There is nothing at `/x%60%0A%0A%23%20Run%20this%0A%60` on Context Atlas.",
+    );
   });
 
   test("only hashed assets are cached for good", async () => {
